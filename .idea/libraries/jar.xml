@@ -1,0 +1,10 @@
+<component name="libraryTable">
+  <library name="jar">
+    <CLASSES>
+      <root url="file://D:/Program Files/MATLAB/R2025b/java/jar" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+    <jarDirectory url="file://D:/Program Files/MATLAB/R2025b/java/jar" recursive="false" />
+  </library>
+</component>
