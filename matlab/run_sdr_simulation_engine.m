@@ -1,4 +1,9 @@
-function run_sdr_simulation_engine(modType, channelType, numBits, snrDb, sps, rolloff, filterSpan, maxDopplerShift, kFactor, impulseProb, impulseAmp, outDir)
+function run_sdr_simulation_engine( ...
+    modType, channelType, numBits, snrDb, ...
+    sps, rolloff, filterSpan, maxDopplerShift, ...
+    kFactor, impulseProb, impulseAmp, outDir, ...
+    modeType, sdrDevice, ipAddress, ...
+    centerFrequency, txGain, rxGain, radioID) 
 % MATLAB backend for Java GUI through MATLAB Engine API
 
     close all;
@@ -40,7 +45,62 @@ function run_sdr_simulation_engine(modType, channelType, numBits, snrDb, sps, ro
     txWaveform = txWaveform / rms(txWaveform);
 
     %% Канал
-    [rxWaveform, chanInfo] = applyChannel(txWaveform, cfg);
+    %% SDR / Simulation mode
+
+if strcmpi(modeType, 'SDR')
+    try
+        disp('=== SDR MODE ENABLED ===');
+        
+        %% Pluto SDR
+
+        if strcmpi(sdrDevice, 'Pluto')
+            tx = sdrtx('Pluto');
+            rx = sdrrx('Pluto');
+            tx.RadioID = char(radioID);
+            rx.RadioID = char(radioID);
+
+        %% AD9361
+        elseif strcmpi(sdrDevice, 'AD9361')
+
+            tx = sdrtx('Pluto', ...
+                'RadioID', char(ipAddress));
+            rx = sdrrx('Pluto', ...
+                'RadioID', char(ipAddress));
+        else
+            error('Unsupported SDR device.');
+
+        end
+
+        %% SDR parameters
+
+        tx.CenterFrequency = double(centerFrequency);
+        rx.CenterFrequency = double(centerFrequency);
+        tx.BasebandSampleRate = cfg.fs;
+        rx.BasebandSampleRate = cfg.fs;
+        tx.Gain = double(txGain);
+        rx.GainSource = 'Manual';
+        rx.Gain = double(rxGain);
+        rx.OutputDataType = 'double';
+
+        %% SDR transmission
+        transmitRepeat(tx, txWaveform);
+        pause(0.5);
+        rxWaveform = rx();
+        release(tx);
+        release(rx);
+        rxWaveform = rxWaveform(:);
+        chanInfo.name = 'Real SDR Link';
+    catch ME
+        warning(ME.message);
+        disp('SDR unavailable. Switching to simulation.');
+        [rxWaveform, chanInfo] = applyChannel(txWaveform, cfg);
+    end
+else
+
+    %% Simulation mode
+  [rxWaveform, chanInfo] = applyChannel(txWaveform, cfg);
+
+end
 
     %% Прийом
     rxMatched = upfirdn(rxWaveform, rrc, 1, 1);
