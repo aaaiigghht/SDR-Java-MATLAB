@@ -1,40 +1,47 @@
 import com.mathworks.engine.MatlabEngine;
-
 import javax.swing.*;
-import javax.swing.border.Border;
-import javax.swing.border.EmptyBorder;
-import javax.swing.border.TitledBorder;
+import javax.swing.border.*;
 import java.awt.*;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.util.LinkedHashMap;
 import java.util.Map;
-
 public class Main extends JFrame {
-
-    /* 1. Кольори / стиль */
+/* =========================================
+   COLORS
+ ========================================= */
     private final Color BACKGROUND_COLOR = new Color(236, 239, 244);
     private final Color PANEL_COLOR = new Color(243, 243, 243);
     private final Color TEXT_COLOR = new Color(34, 74, 112);
     private final Color BORDER_BLUE = new Color(32, 70, 109);
 
-    /* 2. Шрифти */
-    private final Font TITLE_FONT = new Font("Cambria", Font.BOLD, 22);
-    private final Font SECTION_FONT = new Font("Cambria", Font.BOLD, 14);
-    private final Font LABEL_FONT = new Font("Cambria", Font.BOLD, 14);
-    private final Font VALUE_FONT = new Font("Cambria", Font.PLAIN, 14);
-    private final Font BUTTON_FONT = new Font("Cambria", Font.BOLD, 14);
-    private final Font STATUS_FONT = new Font("Cambria", Font.PLAIN, 13);
+/* =========================================
+   FONTS
+ ========================================= */
+    private final Font TITLE_FONT =
+            new Font("Cambria", Font.BOLD, 22);
+    private final Font SECTION_FONT =
+            new Font("Cambria", Font.BOLD, 14);
+    private final Font LABEL_FONT =
+            new Font("Cambria", Font.BOLD, 12);
+    private final Font VALUE_FONT =
+            new Font("Cambria", Font.PLAIN, 12);
+    private final Font BUTTON_FONT =
+            new Font("Cambria", Font.BOLD, 14);
+/* =========================================
+   MATLAB
+ ========================================= */
 
-    /** Виклик MATLAB з Java */
     private MatlabEngine matlabEngine;
-    private final String matlabFolder = "C:/Users/USER/Desktop/SDR_Project/matlab";
-    private final String exportDir = "C:/Users/USER/Desktop/SDR_Project/java_export";
-
-    /* 3. Блок вводу */
+    private final String matlabFolder =
+            "C:/Users/USER/Desktop/SDR_Project/matlab";
+    private final String exportDir =
+            "C:/Users/USER/Desktop/SDR_Project/java_export";
+/* =========================================
+   MODELING PARAMETERS
+ ========================================= */
     private JComboBox<String> modulationBox;
     private JComboBox<String> channelBox;
-
     private JTextField bitsField;
     private JTextField snrField;
     private JTextField spsField;
@@ -44,123 +51,117 @@ public class Main extends JFrame {
     private JTextField kFactorField;
     private JTextField impulseProbField;
     private JTextField impulseAmpField;
-
-    /* 4. Блок результатів */
-    private JLabel berValueLabel;
-    private JLabel evmValueLabel;
-    private JLabel snrEstValueLabel;
-    private JLabel bitsUsedValueLabel;
-    private JLabel channelUsedValueLabel;
-    private JLabel modulationUsedValueLabel;
-    private JLabel statusLabel;
-
-    /* 5. Блок обраних параметрів */
+/* =========================================
+   SDR PARAMETERS
+ ========================================= */
+    private JComboBox<String> modeBox;
+    private JComboBox<String> sdrDeviceBox;
+    private JTextField ipField;
+    private JTextField frequencyField;
+    private JTextField txGainField;
+    private JTextField rxGainField;
+    private JTextField radioIdField;
+/* =========================================
+   RESULTS
+ ========================================= */
+    private JLabel berLabel;
+    private JLabel evmLabel;
+    private JLabel snrEstLabel;
+    private JLabel bitsUsedLabel;
+/* =========================================
+   SELECTED PARAMETERS
+ ========================================= */
     private JLabel selectedModulationLabel;
     private JLabel selectedChannelLabel;
     private JLabel selectedBitsLabel;
     private JLabel selectedSnrLabel;
     private JLabel selectedSpsLabel;
-    private JLabel selectedRolloffLabel;
-    private JLabel selectedFilterSpanLabel;
-    private JLabel selectedDopplerLabel;
-    private JLabel selectedKFactorLabel;
-    private JLabel selectedImpulseProbLabel;
-    private JLabel selectedImpulseAmpLabel;
-
-    /* 6. Блок графіків */
-    private JTabbedPane plotsTabbedPane;
-
-    /* 7. Кнопка запуску */
-    private JButton runButton;
-
+    private JLabel selectedModeLabel;
+    private JLabel selectedDeviceLabel;
+    private JLabel selectedFrequencyLabel;
+    private JLabel selectedIpLabel;
+    private JLabel selectedTxGainLabel;
+    private JLabel selectedRxGainLabel;
+    private JLabel selectedRadioIdLabel;
+/* =========================================
+   STATUS
+ ========================================= */
+    private JLabel statusLabel;
+/* =========================================
+   PLOTS
+ ========================================= */
+    private JTabbedPane plotsTabs;
     public Main() {
-        setTitle("Програмний додаток для досліджень з використанням SDR трансиверів на базі AD9361");
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setSize(1400, 850);
+        setTitle(
+                "Програмний додаток для досліджень SDR трансиверів на базі AD9361"
+        );
+        setDefaultCloseOperation(EXIT_ON_CLOSE);
+        setSize(1500, 860);
         setLocationRelativeTo(null);
-        setLayout(new BorderLayout());
         getContentPane().setBackground(BACKGROUND_COLOR);
-
+        setLayout(new BorderLayout(10, 10));
         add(createHeaderPanel(), BorderLayout.NORTH);
         add(createMainPanel(), BorderLayout.CENTER);
-
         refreshAll();
-        updateSelectedParametersPanel();
     }
-
-    /**
-     * Створює синю рамку для блоків.
-     */
-    private TitledBorder createStyledBorder(String title) {
-        Border lineBorder = BorderFactory.createLineBorder(BORDER_BLUE, 1);
-        TitledBorder border = new TitledBorder(lineBorder, title);
-        border.setTitleColor(BORDER_BLUE);
-        border.setTitleFont(SECTION_FONT);
-        return border;
-    }
-
-    /**
-     * Форматує рядок як: жирна назва + звичайне значення.
-     */
-    private String formatPair(String label, String value) {
-        return "<html><span style='font-family:Cambria;'><b>" + label + "</b> " + value + "</span></html>";
-    }
-
-    /**
-     * Верхня панель із заголовком.
-     */
+    /* ========================================================= */
     private JPanel createHeaderPanel() {
         JPanel panel = new JPanel(new BorderLayout());
         panel.setBackground(BACKGROUND_COLOR);
-        panel.setBorder(new EmptyBorder(10, 15, 10, 15));
-
-        JLabel titleLabel = new JLabel(
-                "<html><div style='text-align:center;'><b>Програмний додаток для досліджень з використанням SDR трансиверів на базі AD9361</b></div></html>",
+        panel.setBorder(new EmptyBorder(10, 10, 5, 10));
+        JLabel title = new JLabel(
+                "<html><center><b>Програмний додаток для досліджень SDR трансиверів на базі AD9361</b></center></html>",
                 SwingConstants.CENTER
         );
-        titleLabel.setFont(TITLE_FONT);
-        titleLabel.setForeground(TEXT_COLOR);
-
-        panel.add(titleLabel, BorderLayout.CENTER);
+        title.setFont(TITLE_FONT);
+        title.setForeground(TEXT_COLOR);
+        panel.add(title, BorderLayout.CENTER);
         return panel;
     }
-
-    /**
-     * Центральна частина вікна.
-     */
+    /* ========================================================= */
     private JPanel createMainPanel() {
         JPanel panel = new JPanel(new BorderLayout(10, 10));
-        panel.setBorder(new EmptyBorder(0, 10, 10, 10));
         panel.setBackground(BACKGROUND_COLOR);
-
+        panel.setBorder(new EmptyBorder(0, 10, 10, 10));
         panel.add(createControlPanel(), BorderLayout.WEST);
         panel.add(createPlotsPanel(), BorderLayout.CENTER);
         panel.add(createResultsPanel(), BorderLayout.EAST);
-
         return panel;
     }
 
-    /**
-     * Ліва панель з параметрами моделювання.
-     */
+    /* ========================================================= */
+
     private JPanel createControlPanel() {
-        JPanel outerPanel = new JPanel(new BorderLayout());
-        outerPanel.setPreferredSize(new Dimension(320, 600));
-        outerPanel.setBackground(BACKGROUND_COLOR);
-
-        JPanel innerPanel = new JPanel();
-        innerPanel.setLayout(new BoxLayout(innerPanel, BoxLayout.Y_AXIS));
-        innerPanel.setBorder(createStyledBorder("Параметри моделювання"));
-        innerPanel.setBackground(PANEL_COLOR);
-
+        JPanel outer = new JPanel(new BorderLayout());
+        outer.setPreferredSize(new Dimension(370, 760));
+        outer.setBackground(BACKGROUND_COLOR);
+        JPanel content = new JPanel();
+        content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
+        content.setBackground(BACKGROUND_COLOR);
+    /* =========================================
+       MODELING PANEL
+     ========================================= */
+        JPanel modelingPanel =
+                new JPanel(new GridLayout(0, 2, 8, 8));
+        modelingPanel.setBorder(
+                createStyledBorder("Параметри моделювання")
+        );
+        modelingPanel.setBackground(PANEL_COLOR);
         modulationBox = new JComboBox<>(new String[]{
-                "BPSK", "QPSK", "8PSK", "16QAM", "64QAM", "256QAM"
+                "BPSK",
+                "QPSK",
+                "8PSK",
+                "16QAM",
+                "64QAM",
+                "256QAM"
         });
-
         channelBox = new JComboBox<>(new String[]{
-                "AWGN", "Rayleigh", "Rician", "Impulse", "Combined"
+                "AWGN",
+                "Rayleigh",
+                "Rician",
+                "Impulse",
+                "Combined"
         });
-
         bitsField = new JTextField("48000");
         snrField = new JTextField("18");
         spsField = new JTextField("8");
@@ -170,343 +171,584 @@ public class Main extends JFrame {
         kFactorField = new JTextField("6");
         impulseProbField = new JTextField("0.0005");
         impulseAmpField = new JTextField("4.0");
-
-        innerPanel.add(createFieldPanel("Тип модуляції", modulationBox));
-        innerPanel.add(createFieldPanel("Тип каналу", channelBox));
-        innerPanel.add(createFieldPanel("Кількість бітів", bitsField));
-        innerPanel.add(createFieldPanel("SNR, dB", snrField));
-        innerPanel.add(createFieldPanel("Samples per symbol", spsField));
-        innerPanel.add(createFieldPanel("Rolloff", rolloffField));
-        innerPanel.add(createFieldPanel("Filter span", filterSpanField));
-        innerPanel.add(createFieldPanel("Doppler shift", dopplerField));
-        innerPanel.add(createFieldPanel("K-factor", kFactorField));
-        innerPanel.add(createFieldPanel("Impulse probability", impulseProbField));
-        innerPanel.add(createFieldPanel("Impulse amplitude", impulseAmpField));
-
-        runButton = new JButton("Запустити моделювання");
+        modelingPanel.add(createCompactField("Модуляція", modulationBox));
+        modelingPanel.add(createCompactField("Канал", channelBox));
+        modelingPanel.add(createCompactField("Bits", bitsField));
+        modelingPanel.add(createCompactField("SNR", snrField));
+        modelingPanel.add(createCompactField("SPS", spsField));
+        modelingPanel.add(createCompactField("Rolloff", rolloffField));
+        modelingPanel.add(createCompactField("Filter span", filterSpanField));
+        modelingPanel.add(createCompactField("Doppler", dopplerField));
+        modelingPanel.add(createCompactField("K-factor", kFactorField));
+        modelingPanel.add(createCompactField("Impulse prob", impulseProbField));
+        modelingPanel.add(createCompactField("Impulse amp", impulseAmpField));
+    /* =========================================
+       SDR PANEL
+     ========================================= */
+        JPanel sdrPanel =
+                new JPanel(new GridLayout(0, 2, 8, 8));
+        sdrPanel.setBorder(
+                createStyledBorder("SDR Налаштування")
+        );
+        sdrPanel.setBackground(PANEL_COLOR);
+        modeBox = new JComboBox<>(new String[]{
+                "Simulation Mode",
+                "SDR Transceiver Mode"
+        });
+        sdrDeviceBox = new JComboBox<>(new String[]{
+                "Pluto",
+                "AD9361"
+        });
+        ipField = new JTextField("192.168.2.1");
+        frequencyField = new JTextField("2.4e9");
+        txGainField = new JTextField("-10");
+        rxGainField = new JTextField("20");
+        radioIdField = new JTextField("usb:0");
+        sdrPanel.add(createCompactField("Mode", modeBox));
+        sdrPanel.add(createCompactField("SDR Device", sdrDeviceBox));
+        sdrPanel.add(createCompactField("IP Address", ipField));
+        sdrPanel.add(createCompactField("Frequency", frequencyField));
+        sdrPanel.add(createCompactField("TX Gain", txGainField));
+        sdrPanel.add(createCompactField("RX Gain", rxGainField));
+        sdrPanel.add(createCompactField("Radio ID", radioIdField));
+        modeBox.addActionListener(e -> updateSdrFieldsState());
+        updateSdrFieldsState();
+    /* =========================================
+       BUTTON PANEL
+     ========================================= */
+        JPanel buttonPanel = new JPanel();
+        buttonPanel.setBackground(BACKGROUND_COLOR);
+        buttonPanel.setLayout(new BoxLayout(
+                buttonPanel,
+                BoxLayout.Y_AXIS
+        ));
+        JButton runButton =
+                new JButton("Запустити моделювання");
         runButton.setFont(BUTTON_FONT);
         runButton.setForeground(TEXT_COLOR);
+        runButton.setFocusPainted(false);
+        runButton.setAlignmentX(Component.CENTER_ALIGNMENT);
+        runButton.setPreferredSize(
+                new Dimension(230, 42)
+        );
+        runButton.setMaximumSize(
+                new Dimension(230, 42)
+        );
         runButton.addActionListener(e -> runSimulation());
-
         statusLabel = new JLabel("Статус: готово");
-        statusLabel.setFont(STATUS_FONT);
         statusLabel.setForeground(TEXT_COLOR);
-        statusLabel.setBorder(new EmptyBorder(8, 5, 5, 5));
-
-        JPanel bottomBlock = new JPanel();
-        bottomBlock.setLayout(new BoxLayout(bottomBlock, BoxLayout.Y_AXIS));
-        bottomBlock.setBackground(BACKGROUND_COLOR);
-        bottomBlock.add(runButton);
-        bottomBlock.add(statusLabel);
-
-        JPanel wrapper = new JPanel(new BorderLayout());
-        wrapper.setBackground(BACKGROUND_COLOR);
-        wrapper.add(innerPanel, BorderLayout.CENTER);
-        wrapper.add(bottomBlock, BorderLayout.SOUTH);
-
-        outerPanel.add(wrapper, BorderLayout.NORTH);
-        return outerPanel;
+        statusLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+        buttonPanel.add(Box.createVerticalStrut(10));
+        buttonPanel.add(runButton);
+        buttonPanel.add(Box.createVerticalStrut(10));
+        buttonPanel.add(statusLabel);
+        content.add(modelingPanel);
+        content.add(Box.createVerticalStrut(12));
+        content.add(sdrPanel);
+        content.add(Box.createVerticalStrut(15));
+        content.add(buttonPanel);
+        outer.add(content, BorderLayout.NORTH);
+        return outer;
     }
 
-    /**
-     * Окремий блок: підпис + поле/список.
-     */
-    private JPanel createFieldPanel(String labelText, JComponent component) {
-        JPanel panel = new JPanel(new BorderLayout(5, 5));
-        panel.setBorder(new EmptyBorder(5, 8, 5, 8));
+    /* ========================================================= */
+    private JPanel createPlotsPanel() {
+        JPanel panel = new JPanel(new BorderLayout());
         panel.setBackground(PANEL_COLOR);
+        panel.setBorder(createStyledBorder("Графіки"));
+        plotsTabs = new JTabbedPane();
+        plotsTabs.setFont(VALUE_FONT);
+        panel.add(plotsTabs, BorderLayout.CENTER);
+        return panel;
+    }
+    /* ========================================================= */
 
+    private JPanel createResultsPanel() {
+        JPanel outer = new JPanel();
+        outer.setPreferredSize(new Dimension(330, 760));
+        outer.setBackground(BACKGROUND_COLOR);
+        outer.setLayout(new BoxLayout(
+                outer,
+                BoxLayout.Y_AXIS
+        ));
+    /* =========================================
+       RESULTS PANEL
+     ========================================= */
+
+        JPanel resultsPanel = new JPanel();
+        resultsPanel.setLayout(new BoxLayout(
+                resultsPanel,
+                BoxLayout.Y_AXIS
+        ));
+        resultsPanel.setBackground(PANEL_COLOR);
+        resultsPanel.setBorder(
+                createStyledBorder("Результати")
+        );
+        bitsUsedLabel = createResultLabel("Bits used: -");
+        berLabel = createResultLabel("BER: -");
+        evmLabel = createResultLabel("EVM RMS: -");
+        snrEstLabel = createResultLabel("SNR est: -");
+        resultsPanel.add(Box.createVerticalStrut(10));
+        resultsPanel.add(bitsUsedLabel);
+        resultsPanel.add(berLabel);
+        resultsPanel.add(evmLabel);
+        resultsPanel.add(snrEstLabel);
+
+    /* =========================================
+       SELECTED PARAMETERS PANEL
+     ========================================= */
+        JPanel selectedPanel = new JPanel();
+        selectedPanel.setLayout(new BoxLayout(
+                selectedPanel,
+                BoxLayout.Y_AXIS
+        ));
+        selectedPanel.setBackground(PANEL_COLOR);
+        selectedPanel.setBorder(
+                createStyledBorder("Обрані параметри")
+        );
+        selectedModulationLabel =
+                createResultLabel("Modulation: -");
+        selectedChannelLabel =
+                createResultLabel("Channel: -");
+        selectedBitsLabel =
+                createResultLabel("Bits: -");
+        selectedSnrLabel =
+                createResultLabel("SNR: -");
+        selectedSpsLabel =
+                createResultLabel("SPS: -");
+        selectedModeLabel =
+                createResultLabel("Mode: -");
+        selectedDeviceLabel =
+                createResultLabel("SDR Device: -");
+        selectedFrequencyLabel =
+                createResultLabel("Frequency: -");
+        selectedIpLabel =
+                createResultLabel("IP Address: -");
+        selectedTxGainLabel =
+                createResultLabel("TX Gain: -");
+        selectedRxGainLabel =
+                createResultLabel("RX Gain: -");
+        selectedRadioIdLabel =
+                createResultLabel("Radio ID: -");
+        selectedPanel.add(Box.createVerticalStrut(10));
+        selectedPanel.add(selectedModulationLabel);
+        selectedPanel.add(selectedChannelLabel);
+        selectedPanel.add(selectedBitsLabel);
+        selectedPanel.add(selectedSnrLabel);
+        selectedPanel.add(selectedSpsLabel);
+        selectedPanel.add(Box.createVerticalStrut(10));
+        selectedPanel.add(selectedModeLabel);
+        selectedPanel.add(selectedDeviceLabel);
+        selectedPanel.add(selectedFrequencyLabel);
+        selectedPanel.add(selectedIpLabel);
+        selectedPanel.add(selectedTxGainLabel);
+        selectedPanel.add(selectedRxGainLabel);
+        selectedPanel.add(selectedRadioIdLabel);
+        outer.add(resultsPanel);
+        outer.add(Box.createVerticalStrut(12));
+        outer.add(selectedPanel);
+        return outer;
+    }
+
+    /* ========================================================= */
+
+    private JPanel createCompactField(
+            String labelText,
+            JComponent component
+    ) {
+        JPanel panel = new JPanel(new BorderLayout(3, 3));
+        panel.setBackground(PANEL_COLOR);
         JLabel label = new JLabel(labelText);
         label.setFont(LABEL_FONT);
         label.setForeground(TEXT_COLOR);
-
         component.setFont(VALUE_FONT);
-        component.setForeground(TEXT_COLOR);
-
+        component.setPreferredSize(
+                new Dimension(120, 26)
+        );
         panel.add(label, BorderLayout.NORTH);
         panel.add(component, BorderLayout.CENTER);
-
         return panel;
     }
 
-    /**
-     * Центральна панель з вкладками графіків.
-     */
-    private JPanel createPlotsPanel() {
-        JPanel panel = new JPanel(new BorderLayout());
-        panel.setBorder(createStyledBorder("Графіки"));
-        panel.setBackground(PANEL_COLOR);
+    /* ========================================================= */
 
-        plotsTabbedPane = new JTabbedPane();
-        plotsTabbedPane.setFont(VALUE_FONT);
-        panel.add(plotsTabbedPane, BorderLayout.CENTER);
-
-        return panel;
-    }
-
-    /**
-     * Права панель: результати + обрані параметри.
-     */
-    private JPanel createResultsPanel() {
-        JPanel outerPanel = new JPanel();
-        outerPanel.setPreferredSize(new Dimension(320, 650));
-        outerPanel.setLayout(new BorderLayout());
-        outerPanel.setBackground(BACKGROUND_COLOR);
-
-        JPanel resultsPanel = new JPanel();
-        resultsPanel.setLayout(new BoxLayout(resultsPanel, BoxLayout.Y_AXIS));
-        resultsPanel.setBorder(createStyledBorder("Результати"));
-        resultsPanel.setBackground(PANEL_COLOR);
-
-        modulationUsedValueLabel = createResultLabel(formatPair("Modulation:", "-"));
-        channelUsedValueLabel = createResultLabel(formatPair("Channel:", "-"));
-        bitsUsedValueLabel = createResultLabel(formatPair("Bits used:", "-"));
-        snrEstValueLabel = createResultLabel(formatPair("SNR est:", "-"));
-        berValueLabel = createResultLabel(formatPair("BER:", "-"));
-        evmValueLabel = createResultLabel(formatPair("EVM RMS:", "-"));
-
-        resultsPanel.add(Box.createVerticalStrut(10));
-        resultsPanel.add(modulationUsedValueLabel);
-        resultsPanel.add(channelUsedValueLabel);
-        resultsPanel.add(bitsUsedValueLabel);
-        resultsPanel.add(snrEstValueLabel);
-        resultsPanel.add(berValueLabel);
-        resultsPanel.add(evmValueLabel);
-
-        JPanel selectedParamsPanel = new JPanel();
-        selectedParamsPanel.setLayout(new BoxLayout(selectedParamsPanel, BoxLayout.Y_AXIS));
-        selectedParamsPanel.setBorder(createStyledBorder("Обрані параметри"));
-        selectedParamsPanel.setBackground(PANEL_COLOR);
-
-        selectedModulationLabel = createResultLabel(formatPair("Модуляція:", "-"));
-        selectedChannelLabel = createResultLabel(formatPair("Канал:", "-"));
-        selectedBitsLabel = createResultLabel(formatPair("Кількість бітів:", "-"));
-        selectedSnrLabel = createResultLabel(formatPair("SNR:", "-"));
-        selectedSpsLabel = createResultLabel(formatPair("SPS:", "-"));
-        selectedRolloffLabel = createResultLabel(formatPair("Rolloff:", "-"));
-        selectedFilterSpanLabel = createResultLabel(formatPair("Filter span:", "-"));
-        selectedDopplerLabel = createResultLabel(formatPair("Doppler shift:", "-"));
-        selectedKFactorLabel = createResultLabel(formatPair("K-factor:", "-"));
-        selectedImpulseProbLabel = createResultLabel(formatPair("Impulse probability:", "-"));
-        selectedImpulseAmpLabel = createResultLabel(formatPair("Impulse amplitude:", "-"));
-
-        selectedParamsPanel.add(Box.createVerticalStrut(10));
-        selectedParamsPanel.add(selectedModulationLabel);
-        selectedParamsPanel.add(selectedChannelLabel);
-        selectedParamsPanel.add(selectedBitsLabel);
-        selectedParamsPanel.add(selectedSnrLabel);
-        selectedParamsPanel.add(selectedSpsLabel);
-        selectedParamsPanel.add(selectedRolloffLabel);
-        selectedParamsPanel.add(selectedFilterSpanLabel);
-        selectedParamsPanel.add(selectedDopplerLabel);
-        selectedParamsPanel.add(selectedKFactorLabel);
-        selectedParamsPanel.add(selectedImpulseProbLabel);
-        selectedParamsPanel.add(selectedImpulseAmpLabel);
-
-        JPanel combinedPanel = new JPanel();
-        combinedPanel.setLayout(new BoxLayout(combinedPanel, BoxLayout.Y_AXIS));
-        combinedPanel.setBackground(BACKGROUND_COLOR);
-        combinedPanel.add(resultsPanel);
-        combinedPanel.add(Box.createVerticalStrut(10));
-        combinedPanel.add(selectedParamsPanel);
-
-        outerPanel.add(combinedPanel, BorderLayout.NORTH);
-
-        return outerPanel;
-    }
-
-    /**
-     * Один рядок у блоці результатів/параметрів.
-     */
     private JLabel createResultLabel(String text) {
+
         JLabel label = new JLabel(text);
-        label.setFont(VALUE_FONT);
-        label.setBorder(new EmptyBorder(8, 12, 8, 10));
-        label.setAlignmentX(Component.LEFT_ALIGNMENT);
-        label.setHorizontalAlignment(SwingConstants.LEFT);
-        label.setMaximumSize(new Dimension(Integer.MAX_VALUE, 35));
+        label.setFont(
+                new Font("Cambria", Font.PLAIN, 14)
+        );
         label.setForeground(TEXT_COLOR);
+        label.setBorder(
+                new EmptyBorder(6, 12, 6, 12)
+        );
         return label;
     }
 
-    /**
-     * Запускає MATLAB Engine лише один раз.
-     */
+    /* ========================================================= */
+
+    private TitledBorder createStyledBorder(String title) {
+        Border border =
+                BorderFactory.createLineBorder(
+                        BORDER_BLUE,
+                        1
+                );
+        TitledBorder titledBorder =
+                new TitledBorder(border, title);
+        titledBorder.setTitleColor(BORDER_BLUE);
+        titledBorder.setTitleFont(SECTION_FONT);
+        return titledBorder;
+    }
+
+    /* ========================================================= */
+
+    private void updateSdrFieldsState() {
+        boolean enabled =
+                modeBox.getSelectedItem()
+                        .toString()
+                        .contains("SDR");
+        sdrDeviceBox.setEnabled(enabled);
+        ipField.setEnabled(enabled);
+        frequencyField.setEnabled(enabled);
+        txGainField.setEnabled(enabled);
+        rxGainField.setEnabled(enabled);
+        radioIdField.setEnabled(enabled);
+    }
+
+    /* ========================================================= */
+
+    private void updateSelectedParameters() {
+
+    /* =========================
+       MODELING PARAMETERS
+     ========================= */
+        selectedModulationLabel.setText(
+                "Modulation: "
+                        + modulationBox.getSelectedItem()
+        );
+        selectedChannelLabel.setText(
+                "Channel: "
+                        + channelBox.getSelectedItem()
+        );
+        selectedBitsLabel.setText(
+                "Bits: "
+                        + bitsField.getText()
+        );
+        selectedSnrLabel.setText(
+                "SNR: "
+                        + snrField.getText()
+        );
+        selectedSpsLabel.setText(
+                "SPS: "
+                        + spsField.getText()
+        );
+
+    /* =========================
+
+SDR PARAMETERS========================= */
+        boolean isSdrMode =
+                modeBox.getSelectedItem()
+                        .toString()
+                        .contains("SDR");
+        if (isSdrMode) {
+            selectedModeLabel.setVisible(true);
+            selectedDeviceLabel.setVisible(true);
+            selectedFrequencyLabel.setVisible(true);
+            selectedIpLabel.setVisible(true);
+            selectedTxGainLabel.setVisible(true);
+            selectedRxGainLabel.setVisible(true);
+            selectedRadioIdLabel.setVisible(true);
+            selectedModeLabel.setText(
+                    "Mode: "
+                            + modeBox.getSelectedItem()
+            );
+            selectedDeviceLabel.setText(
+                    "SDR Device: "
+                            + sdrDeviceBox.getSelectedItem()
+            );
+            selectedFrequencyLabel.setText(
+                    "Frequency: "
+                            + frequencyField.getText()
+            );
+            selectedIpLabel.setText(
+                    "IP Address: "
+                            + ipField.getText()
+            );
+            selectedTxGainLabel.setText(
+                    "TX Gain: "
+                            + txGainField.getText()
+            );
+            selectedRxGainLabel.setText(
+                    "RX Gain: "
+                            + rxGainField.getText()
+            );
+            selectedRadioIdLabel.setText(
+                    "Radio ID: "
+                            + radioIdField.getText()
+            );
+
+        } else {
+            selectedModeLabel.setVisible(false);
+            selectedDeviceLabel.setVisible(false);
+            selectedFrequencyLabel.setVisible(false);
+            selectedIpLabel.setVisible(false);
+            selectedTxGainLabel.setVisible(false);
+            selectedRxGainLabel.setVisible(false);
+            selectedRadioIdLabel.setVisible(false);
+        }
+    }
+    /* ========================================================= */
+
     private void ensureMatlabEngine() throws Exception {
         if (matlabEngine == null) {
-            statusLabel.setText("Статус: запуск MATLAB Engine...");
+            statusLabel.setText(
+                    "Статус: запуск MATLAB..."
+            );
             matlabEngine = MatlabEngine.startMatlab();
         }
     }
 
-    /**
-     * Оновлює блок "Обрані параметри".
-     */
-    private void updateSelectedParametersPanel() {
-        selectedModulationLabel.setText(formatPair("Модуляція:", String.valueOf(modulationBox.getSelectedItem())));
-        selectedChannelLabel.setText(formatPair("Канал:", String.valueOf(channelBox.getSelectedItem())));
-        selectedBitsLabel.setText(formatPair("Кількість бітів:", bitsField.getText().trim()));
-        selectedSnrLabel.setText(formatPair("SNR:", snrField.getText().trim()));
-        selectedSpsLabel.setText(formatPair("SPS:", spsField.getText().trim()));
-        selectedRolloffLabel.setText(formatPair("Rolloff:", rolloffField.getText().trim()));
-        selectedFilterSpanLabel.setText(formatPair("Filter span:", filterSpanField.getText().trim()));
-        selectedDopplerLabel.setText(formatPair("Doppler shift:", dopplerField.getText().trim()));
-        selectedKFactorLabel.setText(formatPair("K-factor:", kFactorField.getText().trim()));
-        selectedImpulseProbLabel.setText(formatPair("Impulse probability:", impulseProbField.getText().trim()));
-        selectedImpulseAmpLabel.setText(formatPair("Impulse amplitude:", impulseAmpField.getText().trim()));
-    }
-
-    /**
-     * Запускає моделювання у фоновому потоці.
-     */
+    /* ========================================================= */
     private void runSimulation() {
-        statusLabel.setText("Статус: виконується моделювання...");
-        updateSelectedParametersPanel();
+        statusLabel.setText(
+                "Статус: моделювання..."
+        );
+        updateSelectedParameters();
+        SwingWorker<Void, Void> worker =
+                new SwingWorker<>() {
 
-        SwingWorker<Void, Void> worker = new SwingWorker<>() {
-            @Override
-            protected Void doInBackground() throws Exception {
-                ensureMatlabEngine();
+                    @Override
+                    protected Void doInBackground()
+                            throws Exception {
+                        ensureMatlabEngine();
+                        matlabEngine.eval(
+                                "cd('"
+                                        + matlabFolder.replace("\\", "/")
+                                        + "')"
+                        );
+                        matlabEngine.feval(
+                                0,
+                                "run_sdr_simulation_engine",
+                                modulationBox.getSelectedItem().toString(),
+                                channelBox.getSelectedItem().toString(),
+                                Double.parseDouble(
+                                        bitsField.getText()
+                                ),
+                                Double.parseDouble(
+                                        snrField.getText()
+                                ),
+                                Double.parseDouble(
+                                        spsField.getText()
+                                ),
+                                Double.parseDouble(
+                                        rolloffField.getText()
+                                ),
+                                Double.parseDouble(
+                                        filterSpanField.getText()
+                                ),
+                                Double.parseDouble(
+                                        dopplerField.getText()
+                                ),
+                                Double.parseDouble(
+                                        kFactorField.getText()
+                                ),
+                                Double.parseDouble(
+                                        impulseProbField.getText()
+                                ),
+                                Double.parseDouble(
+                                        impulseAmpField.getText()
+                                ),
+                                exportDir.replace("\\", "/"),
 
-                matlabEngine.eval("cd('" + matlabFolder.replace("\\", "/") + "')");
+        /* ==============================
+           SDR PARAMETERS
+         ============================== */
 
-                matlabEngine.feval(
-                        0,
-                        "run_sdr_simulation_engine",
-                        modulationBox.getSelectedItem().toString(),
-                        channelBox.getSelectedItem().toString(),
-                        Double.parseDouble(bitsField.getText().trim()),
-                        Double.parseDouble(snrField.getText().trim()),
-                        Double.parseDouble(spsField.getText().trim()),
-                        Double.parseDouble(rolloffField.getText().trim()),
-                        Double.parseDouble(filterSpanField.getText().trim()),
-                        Double.parseDouble(dopplerField.getText().trim()),
-                        Double.parseDouble(kFactorField.getText().trim()),
-                        Double.parseDouble(impulseProbField.getText().trim()),
-                        Double.parseDouble(impulseAmpField.getText().trim()),
-                        exportDir.replace("\\", "/")
-                );
+                                modeBox.getSelectedItem().toString(),
+                                sdrDeviceBox.getSelectedItem().toString(),
+                                ipField.getText(),
+                                Double.parseDouble(
+                                        frequencyField.getText()
+                                ),
+                                Double.parseDouble(
+                                        txGainField.getText()
+                                ),
+                                Double.parseDouble(
+                                        rxGainField.getText()
+                                ),
+                                radioIdField.getText()
+                        );
+                        return null;
+                    }
 
-                return null;
-            }
+                    @Override
+                    protected void done() {
+                        try {
+                            get();
+                            refreshAll();
+                            statusLabel.setText(
+                                    "Статус: завершено"
+                            );
+                        } catch (Exception ex) {
 
-            @Override
-            protected void done() {
-                try {
-                    get();
-                    refreshAll();
-                    statusLabel.setText("Статус: моделювання завершено");
-                } catch (Exception ex) {
-                    statusLabel.setText("Статус: помилка моделювання");
-
-                    JOptionPane.showMessageDialog(
-                            Main.this,
-                            "Помилка під час моделювання:\n" + ex.getMessage(),
-                            "Помилка",
-                            JOptionPane.ERROR_MESSAGE
-                    );
-                }
-            }
-        };
+                            statusLabel.setText(
+                                    "Статус: помилка"
+                            );
+                            JOptionPane.showMessageDialog(
+                                    Main.this,
+                                    ex.getMessage(),
+                                    "Помилка",
+                                    JOptionPane.ERROR_MESSAGE
+                            );
+                        }
+                    }
+                };
 
         worker.execute();
     }
 
-    /**
-     * Повне оновлення інтерфейсу після моделювання.
-     */
+    /* ========================================================= */
+
     private void refreshAll() {
         loadPlots();
         loadSummary();
     }
+    /* ========================================================= */
 
-    /**
-     * Завантажує графіки у вкладки.
-     */
     private void loadPlots() {
-        plotsTabbedPane.removeAll();
-
-        plotsTabbedPane.addTab("Constellation", createImageTab(new File(exportDir, "constellation.png")));
-        plotsTabbedPane.addTab("Spectrum", createImageTab(new File(exportDir, "spectrum.png")));
-        plotsTabbedPane.addTab("BER vs SNR", createImageTab(new File(exportDir, "ber_vs_snr.png")));
-        plotsTabbedPane.addTab("Eye Diagram", createImageTab(new File(exportDir, "eye_diagram.png")));
+        plotsTabs.removeAll();
+        plotsTabs.addTab(
+                "Constellation",
+                createImageTab(
+                        new File(
+                                exportDir,
+                                "constellation.png"
+                        )
+                )
+        );
+        plotsTabs.addTab(
+                "Spectrum",
+                createImageTab(
+                        new File(
+                                exportDir,
+                                "spectrum.png"
+                        )
+                )
+        );
+        plotsTabs.addTab(
+                "BER vs SNR",
+                createImageTab(
+                        new File(
+                                exportDir,
+                                "ber_vs_snr.png"
+                        )
+                )
+        );
+        plotsTabs.addTab(
+                "Eye Diagram",
+                createImageTab(
+                        new File(
+                                exportDir,
+                                "eye_diagram.png"
+                        )
+                )
+        );
     }
 
-    /**
-     * Створює вкладку з картинкою.
-     */
-    private JScrollPane createImageTab(File imageFile) {
-        JLabel label;
+    /* ========================================================= */
 
-        if (imageFile.exists()) {
-            ImageIcon icon = new ImageIcon(imageFile.getAbsolutePath());
-            Image img = icon.getImage();
-            Image scaledImg = img.getScaledInstance(600, 400, Image.SCALE_SMOOTH);
-            label = new JLabel(new ImageIcon(scaledImg));
+    private JScrollPane createImageTab(File file) {
+        JLabel label;
+        if (file.exists()) {
+            ImageIcon icon =
+                    new ImageIcon(
+                            file.getAbsolutePath()
+                    );
+            Image scaled =
+                    icon.getImage().getScaledInstance(
+                            720,
+                            470,
+                            Image.SCALE_SMOOTH
+                    );
+            label = new JLabel(
+                    new ImageIcon(scaled)
+            );
         } else {
             label = new JLabel(
-                    "<html><center>Файл не знайдено:<br>" + imageFile.getAbsolutePath() + "</center></html>",
+                    "Файл не знайдено",
                     SwingConstants.CENTER
             );
             label.setForeground(Color.RED);
-            label.setFont(new Font("Cambria", Font.PLAIN, 18));
         }
-
-        label.setHorizontalAlignment(SwingConstants.CENTER);
-        label.setVerticalAlignment(SwingConstants.CENTER);
-
         return new JScrollPane(label);
     }
 
-    /**
-     * Зчитує результати з summary.csv.
-     */
-    private void loadSummary() {
-        File summaryFile = new File(exportDir, "summary.csv");
+    /* ========================================================= */
 
-        if (!summaryFile.exists()) {
-            modulationUsedValueLabel.setText(formatPair("Modulation:", "-"));
-            channelUsedValueLabel.setText(formatPair("Channel:", "-"));
-            bitsUsedValueLabel.setText(formatPair("Bits used:", "-"));
-            snrEstValueLabel.setText(formatPair("SNR est:", "-"));
-            berValueLabel.setText(formatPair("BER:", "-"));
-            evmValueLabel.setText(formatPair("EVM RMS:", "-"));
+    private void loadSummary() {
+        File summary =
+                new File(exportDir, "summary.csv");
+        if (!summary.exists()) {
             return;
         }
-
-        Map<String, String> summaryMap = new LinkedHashMap<>();
-
-        try (BufferedReader reader = new BufferedReader(
-                new InputStreamReader(new FileInputStream(summaryFile), StandardCharsets.UTF_8))) {
+        Map<String, String> map =
+                new LinkedHashMap<>();
+        try (BufferedReader reader =
+                     new BufferedReader(
+                             new InputStreamReader(
+                                     new FileInputStream(summary),
+                                     StandardCharsets.UTF_8
+                             )
+                     )) {
 
             String line;
             while ((line = reader.readLine()) != null) {
-                String[] parts = line.split(",", 2);
+                String[] parts =
+                        line.split(",", 2);
                 if (parts.length == 2) {
-                    summaryMap.put(parts[0].trim(), parts[1].trim());
+                    map.put(
+                            parts[0].trim(),
+                            parts[1].trim()
+                    );
                 }
             }
+            bitsUsedLabel.setText(
+                    "Bits used: "
+                            + map.getOrDefault(
+                            "BitsUsed",
+                            "-"
+                    )
+            );
+            berLabel.setText(
+                    "BER: "
+                            + map.getOrDefault(
+                            "BER",
+                            "-"
+                    )
+            );
+            evmLabel.setText(
+                    "EVM RMS: "
+                            + map.getOrDefault(
+                            "EVM_RMS_percent",
+                            "-"
+                    )
+            );
+            snrEstLabel.setText(
+                    "SNR est: "
+                            + map.getOrDefault(
+                            "SNR_Est_dB",
+                            "-"
+                    )
+            );
+        } catch (Exception ex) {
 
-            modulationUsedValueLabel.setText(formatPair("Modulation:", summaryMap.getOrDefault("Modulation", "-")));
-            channelUsedValueLabel.setText(formatPair("Channel:", summaryMap.getOrDefault("Channel", "-")));
-            bitsUsedValueLabel.setText(formatPair("Bits used:", summaryMap.getOrDefault("BitsUsed", "-")));
-            snrEstValueLabel.setText(formatPair("SNR est:", summaryMap.getOrDefault("SNR_Est_dB", "-")));
-            berValueLabel.setText(formatPair("BER:", summaryMap.getOrDefault("BER", "-")));
-            evmValueLabel.setText(formatPair("EVM RMS:", summaryMap.getOrDefault("EVM_RMS_percent", "-")));
-
-        } catch (IOException e) {
             JOptionPane.showMessageDialog(
                     this,
-                    "Не вдалося прочитати summary.csv\n" + e.getMessage(),
-                    "Помилка",
-                    JOptionPane.ERROR_MESSAGE
+                    ex.getMessage()
             );
         }
     }
-
-    /**
-     * Точка входу.
-     */
+    /* ========================================================= */
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
             Main window = new Main();
