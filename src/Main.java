@@ -7,17 +7,17 @@ import java.nio.charset.StandardCharsets;
 import java.util.LinkedHashMap;
 import java.util.Map;
 public class Main extends JFrame {
-/* =========================================
+/* 
    COLORS
- ========================================= */
+ */
     private final Color BACKGROUND_COLOR = new Color(236, 239, 244);
     private final Color PANEL_COLOR = new Color(243, 243, 243);
     private final Color TEXT_COLOR = new Color(34, 74, 112);
     private final Color BORDER_BLUE = new Color(32, 70, 109);
 
-/* =========================================
+/*
    FONTS
- ========================================= */
+*/
     private final Font TITLE_FONT =
             new Font("Cambria", Font.BOLD, 22);
     private final Font SECTION_FONT =
@@ -28,18 +28,18 @@ public class Main extends JFrame {
             new Font("Cambria", Font.PLAIN, 12);
     private final Font BUTTON_FONT =
             new Font("Cambria", Font.BOLD, 14);
-/* =========================================
+/* 
    MATLAB
- ========================================= */
+ */
 
     private MatlabEngine matlabEngine;
     private final String matlabFolder =
             "C:/Users/USER/Desktop/SDR_Project/matlab";
     private final String exportDir =
             "C:/Users/USER/Desktop/SDR_Project/java_export";
-/* =========================================
+/*
    MODELING PARAMETERS
- ========================================= */
+ */
     private JComboBox<String> modulationBox;
     private JComboBox<String> channelBox;
     private JTextField bitsField;
@@ -61,16 +61,13 @@ public class Main extends JFrame {
     private JTextField txGainField;
     private JTextField rxGainField;
     private JTextField radioIdField;
-/* =========================================
+/* 
    RESULTS
- ========================================= */
+  */
     private JLabel berLabel;
     private JLabel evmLabel;
     private JLabel snrEstLabel;
     private JLabel bitsUsedLabel;
-/* =========================================
-   SELECTED PARAMETERS
- ========================================= */
     private JLabel selectedModulationLabel;
     private JLabel selectedChannelLabel;
     private JLabel selectedBitsLabel;
@@ -83,13 +80,10 @@ public class Main extends JFrame {
     private JLabel selectedTxGainLabel;
     private JLabel selectedRxGainLabel;
     private JLabel selectedRadioIdLabel;
-/* =========================================
-   STATUS
- ========================================= */
     private JLabel statusLabel;
-/* =========================================
+/*
    PLOTS
- ========================================= */
+  */
     private JTabbedPane plotsTabs;
     public Main() {
         setTitle(
@@ -104,7 +98,7 @@ public class Main extends JFrame {
         add(createMainPanel(), BorderLayout.CENTER);
         refreshAll();
     }
-    /* ========================================================= */
+  
     private JPanel createHeaderPanel() {
         JPanel panel = new JPanel(new BorderLayout());
         panel.setBackground(BACKGROUND_COLOR);
@@ -118,7 +112,7 @@ public class Main extends JFrame {
         panel.add(title, BorderLayout.CENTER);
         return panel;
     }
-    /* ========================================================= */
+   
     private JPanel createMainPanel() {
         JPanel panel = new JPanel(new BorderLayout(10, 10));
         panel.setBackground(BACKGROUND_COLOR);
@@ -129,7 +123,7 @@ public class Main extends JFrame {
         return panel;
     }
 
-    /* ========================================================= */
+    
 
     private JPanel createControlPanel() {
         JPanel outer = new JPanel(new BorderLayout());
@@ -138,9 +132,7 @@ public class Main extends JFrame {
         JPanel content = new JPanel();
         content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
         content.setBackground(BACKGROUND_COLOR);
-    /* =========================================
-       MODELING PANEL
-     ========================================= */
+  
         JPanel modelingPanel =
                 new JPanel(new GridLayout(0, 2, 8, 8));
         modelingPanel.setBorder(
@@ -182,9 +174,9 @@ public class Main extends JFrame {
         modelingPanel.add(createCompactField("K-factor", kFactorField));
         modelingPanel.add(createCompactField("Impulse prob", impulseProbField));
         modelingPanel.add(createCompactField("Impulse amp", impulseAmpField));
-    /* =========================================
+    /* 
        SDR PANEL
-     ========================================= */
+     */
         JPanel sdrPanel =
                 new JPanel(new GridLayout(0, 2, 8, 8));
         sdrPanel.setBorder(
@@ -213,9 +205,7 @@ public class Main extends JFrame {
         sdrPanel.add(createCompactField("Radio ID", radioIdField));
         modeBox.addActionListener(e -> updateSdrFieldsState());
         updateSdrFieldsState();
-    /* =========================================
-       BUTTON PANEL
-     ========================================= */
+   
         JPanel buttonPanel = new JPanel();
         buttonPanel.setBackground(BACKGROUND_COLOR);
         buttonPanel.setLayout(new BoxLayout(
@@ -251,7 +241,7 @@ public class Main extends JFrame {
         return outer;
     }
 
-    /* ========================================================= */
+   
     private JPanel createPlotsPanel() {
         JPanel panel = new JPanel(new BorderLayout());
         panel.setBackground(PANEL_COLOR);
@@ -261,8 +251,7 @@ public class Main extends JFrame {
         panel.add(plotsTabs, BorderLayout.CENTER);
         return panel;
     }
-    /* ========================================================= */
-
+  
     private JPanel createResultsPanel() {
         JPanel outer = new JPanel();
         outer.setPreferredSize(new Dimension(330, 760));
@@ -271,10 +260,7 @@ public class Main extends JFrame {
                 outer,
                 BoxLayout.Y_AXIS
         ));
-    /* =========================================
-       RESULTS PANEL
-     ========================================= */
-
+   
         JPanel resultsPanel = new JPanel();
         resultsPanel.setLayout(new BoxLayout(
                 resultsPanel,
@@ -294,9 +280,7 @@ public class Main extends JFrame {
         resultsPanel.add(evmLabel);
         resultsPanel.add(snrEstLabel);
 
-    /* =========================================
-       SELECTED PARAMETERS PANEL
-     ========================================= */
+  
         JPanel selectedPanel = new JPanel();
         selectedPanel.setLayout(new BoxLayout(
                 selectedPanel,
@@ -350,7 +334,6 @@ public class Main extends JFrame {
         return outer;
     }
 
-    /* ========================================================= */
 
     private JPanel createCompactField(
             String labelText,
@@ -370,7 +353,6 @@ public class Main extends JFrame {
         return panel;
     }
 
-    /* ========================================================= */
 
     private JLabel createResultLabel(String text) {
 
@@ -385,7 +367,6 @@ public class Main extends JFrame {
         return label;
     }
 
-    /* ========================================================= */
 
     private TitledBorder createStyledBorder(String title) {
         Border border =
@@ -400,7 +381,6 @@ public class Main extends JFrame {
         return titledBorder;
     }
 
-    /* ========================================================= */
 
     private void updateSdrFieldsState() {
         boolean enabled =
@@ -415,13 +395,10 @@ public class Main extends JFrame {
         radioIdField.setEnabled(enabled);
     }
 
-    /* ========================================================= */
 
     private void updateSelectedParameters() {
 
-    /* =========================
-       MODELING PARAMETERS
-     ========================= */
+   
         selectedModulationLabel.setText(
                 "Modulation: "
                         + modulationBox.getSelectedItem()
@@ -443,9 +420,7 @@ public class Main extends JFrame {
                         + spsField.getText()
         );
 
-    /* =========================
-
-SDR PARAMETERS========================= */
+    
         boolean isSdrMode =
                 modeBox.getSelectedItem()
                         .toString()
@@ -497,7 +472,6 @@ SDR PARAMETERS========================= */
             selectedRadioIdLabel.setVisible(false);
         }
     }
-    /* ========================================================= */
 
     private void ensureMatlabEngine() throws Exception {
         if (matlabEngine == null) {
@@ -508,7 +482,7 @@ SDR PARAMETERS========================= */
         }
     }
 
-    /* ========================================================= */
+   
     private void runSimulation() {
         statusLabel.setText(
                 "Статус: моделювання..."
@@ -560,9 +534,9 @@ SDR PARAMETERS========================= */
                                 ),
                                 exportDir.replace("\\", "/"),
 
-        /* ==============================
+        /* 
            SDR PARAMETERS
-         ============================== */
+          */
 
                                 modeBox.getSelectedItem().toString(),
                                 sdrDeviceBox.getSelectedItem().toString(),
@@ -607,13 +581,11 @@ SDR PARAMETERS========================= */
         worker.execute();
     }
 
-    /* ========================================================= */
-
+   
     private void refreshAll() {
         loadPlots();
         loadSummary();
     }
-    /* ========================================================= */
 
     private void loadPlots() {
         plotsTabs.removeAll();
@@ -655,7 +627,6 @@ SDR PARAMETERS========================= */
         );
     }
 
-    /* ========================================================= */
 
     private JScrollPane createImageTab(File file) {
         JLabel label;
@@ -683,7 +654,6 @@ SDR PARAMETERS========================= */
         return new JScrollPane(label);
     }
 
-    /* ========================================================= */
 
     private void loadSummary() {
         File summary =
@@ -748,7 +718,6 @@ SDR PARAMETERS========================= */
             );
         }
     }
-    /* ========================================================= */
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
             Main window = new Main();
