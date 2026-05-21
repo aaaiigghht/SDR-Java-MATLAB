@@ -44,64 +44,178 @@ function run_sdr_simulation_engine( ...
     txWaveform = upfirdn(txSymbols, rrc, cfg.sps, 1);
     txWaveform = txWaveform / rms(txWaveform);
 
-    %% Канал
+       %% Канал
     %% SDR / Simulation mode
 
-if strcmpi(modeType, 'SDR')
-    try
-        disp('=== SDR MODE ENABLED ===');
-        
-        %% Pluto SDR
+    if strcmpi(strtrim(char(modeType)), 'SDR')
+        try
+            disp('=== SDR MODE ENABLED ===');
 
-        if strcmpi(sdrDevice, 'Pluto')
-            tx = sdrtx('Pluto');
-            rx = sdrrx('Pluto');
-            tx.RadioID = char(radioID);
-            rx.RadioID = char(radioID);
+            devStr = strtrim(char(sdrDevice));
+            radioStr = strtrim(char(radioID));
+            ipStr = strtrim(char(ipAddress));
 
-        %% AD9361
-        elseif strcmpi(sdrDevice, 'AD9361')
+            %% Вибір RadioID
+            switch upper(devStr)
+                case 'PLUTO'
+                    if isempty(radioStr)
+                        radioStr = 'usb:0';
+                    end
 
-            tx = sdrtx('Pluto', ...
-                'RadioID', char(ipAddress));
-            rx = sdrrx('Pluto', ...
-                'RadioID', char(ipAddress));
-        else
-            error('Unsupported SDR device.');
+                case 'AD9361'
+                    if isempty(ipStr)
+                        error('Для AD9361/IP режиму потрібно задати ipAddress.');
+                    end
 
+                    if startsWith(lower(ipStr), 'ip:')
+                        radioStr = ipStr;
+                    else
+                        radioStr = ['ip:' ipStr];
+                    end
+
+                otherwise
+                    error('Unsupported SDR device: %s', devStr);
+            end
+
+            f_carrier = double(centerFrequency);
+            f_sample  = double(cfg.fs);
+            gain_tx   = double(txGain);
+            gain_rx   = double(rxGain);
+
+            %% Кількість семплів для прийому
+            samples2receive = max(4096, ceil(1.2 * numel(txWaveform)));
+
+            %% Масштабування сигналу для SDR, щоб уникнути перевантаження DAC
+            tx_data2transmitter = txWaveform(:);
+            tx_data2transmitter = 0.8 * tx_data2transmitter / ...
+                (max(abs(tx_data2transmitter)) + eps);
+
+            %% Передавач Pluto / AD936x-compatible
+            TxDevice = sdrtx('Pluto', ...
+                'RadioID', radioStr, ...
+                'CenterFrequency', f_carrier, ...
+                'BasebandSampleRate', f_sample, ...
+                'Gain', gain_tx);
+
+            TxDevice = setSDRPropertyIfExists(TxDevice, 'ChannelMapping', 1);
+            TxDevice = setSDRPropertyIfExists(TxDevice, 'UseCustomFilter', false);
+            TxDevice = setSDRPropertyIfExists(TxDevice, 'ShowAdvancedProperties', true);
+            TxDevice = setSDRPropertyIfExists(TxDevice, 'FrequencyCorrection', 0);
+            TxDevice = setSDRPropertyIfExists(TxDevice, 'DataSourceSelect', 'Input Port');
+
+            %% Приймач Pluto / AD936x-compatible
+            RxDevice = sdrrx('Pluto', ...
+                'RadioID', radioStr, ...
+                'CenterFrequency', f_carrier + 0.0, ...
+                'BasebandSampleRate', f_sample, ...
+                'OutputDataType', 'double', ...
+                'SamplesPerFrame', samples2receive);
+
+            RxDevice = setSDRPropertyIfExists(RxDevice, 'ChannelMapping', 1);
+            RxDevice = setSDRPropertyIfExists(RxDevice, 'GainSource', 'Manual');
+            RxDevice = setSDRPropertyIfExists(RxDevice, 'Gain', gain_rx);
+            RxDevice = setSDRPropertyIfExists(RxDevice, 'EnableBurstMode', false);
+            RxDevice = setSDRPropertyIfExists(RxDevice, 'UseCustomFilter', false);
+            RxDevice = setSDRPropertyIfExists(RxDevice, 'ShowAdvancedProperties', true);
+            RxDevice = setSDRPropertyIfExists(RxDevice, 'FrequencyCorrection', 0);
+            RxDevice = setSDRPropertyIfExists(RxDevice, 'EnableQuadratureCorrection', true);
+            RxDevice = setSDRPropertyIfExists(RxDevice, 'EnableRFDCCorrection', true);
+            RxDevice = setSDRPropertyIfExists(RxDevice, 'EnableBasebandDCCorrection', true);
+
+            %% Перевірка втрати семплів при передачі
+            underflow = NaN;
+
+            try
+                underflow = TxDevice(tx_data2transmitter);
+
+                if isequal(underflow, 0)
+                    disp('Transmitted Data Valid No Underflow');
+                elseif isequal(underflow, 1)
+                    warning('TX underflow detected: samples may be missing during transmission.');
+                end
+
+            catch txCheckErr
+                warning('TX underflow check was skipped: %s', txCheckErr.message);
+            end
+
+            release(TxDevice);
+
+            %% Безперервна передача для стабільного прийому
+            transmitRepeat(TxDevice, tx_data2transmitter);
+            pause(0.5);
+
+            %% Прийом з перевіркою datavalid / overflow
+            rxWaveform = [];
+            maxRxAttempts = 10;
+
+            for attempt = 1:maxRxAttempts
+                try
+                    [data_in_1, datavalid, overflow] = RxDevice();
+                catch
+                    data_in_1 = RxDevice();
+                    datavalid = true;
+                    overflow = false;
+                end
+
+                isValid = all(datavalid(:) == 1);
+                hasOverflow = any(overflow(:) ~= 0);
+
+                if isValid && ~hasOverflow
+                    disp('Received Data Valid No Overflow');
+                    rxWaveform = data_in_1(:);
+                    break;
+
+                elseif ~isValid
+                    disp('Received Data is NOT Valid');
+
+                elseif hasOverflow
+                    disp('Received data missing samples');
+                end
+
+                pause(0.05);
+            end
+
+            release(TxDevice);
+            release(RxDevice);
+
+            if isempty(rxWaveform)
+                error('Не вдалося отримати валідний кадр від SDR-приймача.');
+            end
+
+            rxWaveform = rxWaveform(:);
+
+            %% Нормалізація прийнятого сигналу перед подальшою обробкою
+            if rms(rxWaveform) > 0
+                rxWaveform = rxWaveform / rms(rxWaveform);
+            end
+
+            chanInfo.name = ['Real SDR Link: ' devStr];
+
+        catch ME
+            if exist('TxDevice', 'var')
+                try
+                    release(TxDevice);
+                catch
+                end
+            end
+
+            if exist('RxDevice', 'var')
+                try
+                    release(RxDevice);
+                catch
+                end
+            end
+
+            warning('%s', ME.message);
+            disp('SDR unavailable. Switching to simulation.');
+            [rxWaveform, chanInfo] = applyChannel(txWaveform, cfg);
         end
 
-        %% SDR parameters
-
-        tx.CenterFrequency = double(centerFrequency);
-        rx.CenterFrequency = double(centerFrequency);
-        tx.BasebandSampleRate = cfg.fs;
-        rx.BasebandSampleRate = cfg.fs;
-        tx.Gain = double(txGain);
-        rx.GainSource = 'Manual';
-        rx.Gain = double(rxGain);
-        rx.OutputDataType = 'double';
-
-        %% SDR transmission
-        transmitRepeat(tx, txWaveform);
-        pause(0.5);
-        rxWaveform = rx();
-        release(tx);
-        release(rx);
-        rxWaveform = rxWaveform(:);
-        chanInfo.name = 'Real SDR Link';
-    catch ME
-        warning(ME.message);
-        disp('SDR unavailable. Switching to simulation.');
+    else
+        %% Simulation mode
         [rxWaveform, chanInfo] = applyChannel(txWaveform, cfg);
     end
-else
-
-    %% Simulation mode
-  [rxWaveform, chanInfo] = applyChannel(txWaveform, cfg);
-
-end
-
+    
     %% Прийом
     rxMatched = upfirdn(rxWaveform, rrc, 1, 1);
     totalDelay = cfg.filterSpan * cfg.sps;
@@ -377,4 +491,17 @@ function manualEyeDiagram(sig, sps)
     grid on;
     xlabel('Time / T');
     ylabel('Amplitude');
+end
+function obj = setSDRPropertyIfExists(obj, propName, propValue)
+% Безпечне встановлення SDR-параметра.
+% Якщо у конкретній версії MATLAB / Support Package властивість недоступна,
+% основний код не падає, а просто пропускає це поле.
+
+    if isprop(obj, propName)
+        try
+            obj.(propName) = propValue;
+        catch ME
+            warning('Could not set SDR property "%s": %s', propName, ME.message);
+        end
+    end
 end
