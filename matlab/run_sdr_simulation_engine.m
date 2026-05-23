@@ -472,7 +472,6 @@ function manualEyeDiagram(sig, sps)
 % Ручна побудова eye diagram без eyediagram()
 
     numTraces = min(200, floor(length(sig) / (2 * sps)));
-
     hold on;
     for k = 1:numTraces
         idx = (k - 1) * 2 * sps + 1 : k * 2 * sps;
@@ -482,7 +481,6 @@ function manualEyeDiagram(sig, sps)
         end
     end
     hold off;
-
     grid on;
     xlabel('Time / T');
     ylabel('Amplitude');
