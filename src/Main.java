@@ -4,6 +4,7 @@ import javax.swing.*;
 import javax.swing.border.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
+import java.awt.event.*;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.util.LinkedHashMap;
@@ -11,16 +12,13 @@ import java.util.Map;
 
 public class Main extends JFrame {
 
-    //Кольори інтерфейсу
-
-
+    // Кольори інтерфейсу
     private final Color BACKGROUND_COLOR = new Color(236, 239, 244);
     private final Color PANEL_COLOR = new Color(243, 243, 243);
     private final Color TEXT_COLOR = new Color(34, 74, 112);
     private final Color BORDER_BLUE = new Color(32, 70, 109);
 
-    //Шрифти
-
+    // Шрифти
     private final Font TITLE_FONT =
             new Font("Cambria", Font.BOLD, 22);
 
@@ -36,8 +34,7 @@ public class Main extends JFrame {
     private final Font BUTTON_FONT =
             new Font("Cambria", Font.BOLD, 14);
 
-    //MATLAB
-
+    // MATLAB
     private MatlabEngine matlabEngine;
 
     private final String matlabFolder =
@@ -47,7 +44,6 @@ public class Main extends JFrame {
             "C:/Users/USER/Desktop/SDR_Project/java_export";
 
     // Параметри моделювання
-
     private JComboBox<String> modulationBox;
     private JComboBox<String> channelBox;
 
@@ -62,7 +58,6 @@ public class Main extends JFrame {
     private JTextField impulseAmpField;
 
     // Параметри SDR
-
     private JComboBox<String> modeBox;
     private JComboBox<String> sdrDeviceBox;
 
@@ -73,7 +68,6 @@ public class Main extends JFrame {
     private JTextField radioIdField;
 
     // Основні результати
-
     private JLabel berLabel;
     private JLabel evmLabel;
     private JLabel snrEstLabel;
@@ -81,7 +75,6 @@ public class Main extends JFrame {
     private JLabel comparisonModeLabel;
 
     // Обрані параметри
-
     private JLabel selectedModulationLabel;
     private JLabel selectedChannelLabel;
     private JLabel selectedBitsLabel;
@@ -97,11 +90,9 @@ public class Main extends JFrame {
     private JLabel selectedRadioIdLabel;
 
     // Статус програми
-
     private JLabel statusLabel;
 
     // Вкладки з графіками
-
     private JTabbedPane plotsTabs;
 
     public Main() {
@@ -124,14 +115,13 @@ public class Main extends JFrame {
     }
 
     // Верхня частина вікна з назвою програми
-
     private JPanel createHeaderPanel() {
         JPanel panel = new JPanel(new BorderLayout());
         panel.setBackground(BACKGROUND_COLOR);
         panel.setBorder(new EmptyBorder(10, 10, 5, 10));
 
         JLabel title = new JLabel(
-                "<html><center><b>Програмний додаток для досліджень з використанням SDR трансиверів на базі AD9361</b></center></html>",
+                "<html><center><b>Програмний додаток для досліджень SDR трансиверів на базі AD9361</b></center></html>",
                 SwingConstants.CENTER
         );
 
@@ -144,7 +134,6 @@ public class Main extends JFrame {
     }
 
     // Основна частина програми: параметри, графіки, результати
-
     private JPanel createMainPanel() {
         JPanel panel = new JPanel(new BorderLayout(10, 10));
 
@@ -159,7 +148,6 @@ public class Main extends JFrame {
     }
 
     // Ліва панель з параметрами моделювання та SDR
-
     private JPanel createControlPanel() {
         JPanel outer = new JPanel(new BorderLayout());
 
@@ -171,7 +159,6 @@ public class Main extends JFrame {
         content.setBackground(BACKGROUND_COLOR);
 
         // Панель параметрів моделювання
-
         JPanel modelingPanel =
                 new JPanel(new GridLayout(0, 2, 8, 8));
 
@@ -221,7 +208,6 @@ public class Main extends JFrame {
         modelingPanel.add(createCompactField("Impulse amp", impulseAmpField));
 
         // Панель параметрів SDR
-
         JPanel sdrPanel =
                 new JPanel(new GridLayout(0, 2, 8, 8));
 
@@ -262,8 +248,7 @@ public class Main extends JFrame {
 
         updateSdrFieldsState();
 
-        //Кнопка запуску дослідження
-
+        // Кнопка запуску дослідження
         JPanel buttonPanel = new JPanel();
         buttonPanel.setBackground(BACKGROUND_COLOR);
 
@@ -311,7 +296,6 @@ public class Main extends JFrame {
     }
 
     // Центральна панель з графіками
-
     private JPanel createPlotsPanel() {
         JPanel panel = new JPanel(new BorderLayout());
 
@@ -327,7 +311,6 @@ public class Main extends JFrame {
     }
 
     // Права панель з числовими результатами
-
     private JPanel createResultsPanel() {
         JPanel outer = new JPanel();
 
@@ -340,7 +323,6 @@ public class Main extends JFrame {
         ));
 
         // Панель результатів
-
         JPanel resultsPanel = new JPanel();
 
         resultsPanel.setLayout(new BoxLayout(
@@ -367,7 +349,6 @@ public class Main extends JFrame {
         resultsPanel.add(comparisonModeLabel);
 
         // Панель обраних параметрів
-
         JPanel selectedPanel = new JPanel();
 
         selectedPanel.setLayout(new BoxLayout(
@@ -442,7 +423,6 @@ public class Main extends JFrame {
     }
 
     // Невелике поле з підписом і компонентом
-
     private JPanel createCompactField(
             String labelText,
             JComponent component
@@ -467,7 +447,6 @@ public class Main extends JFrame {
     }
 
     // Створення текстових результатів справа
-
     private JLabel createResultLabel(String text) {
         JLabel label = new JLabel(text);
 
@@ -485,7 +464,6 @@ public class Main extends JFrame {
     }
 
     // Стиль рамок для блоків
-
     private TitledBorder createStyledBorder(String title) {
         Border border =
                 BorderFactory.createLineBorder(
@@ -503,7 +481,6 @@ public class Main extends JFrame {
     }
 
     // Вмикаємо SDR-поля тільки тоді, коли вибраний SDR-режим
-
     private void updateSdrFieldsState() {
         boolean enabled =
                 modeBox.getSelectedItem()
@@ -519,7 +496,6 @@ public class Main extends JFrame {
     }
 
     // Оновлення блоку з вибраними параметрами
-
     private void updateSelectedParameters() {
         selectedModulationLabel.setText(
                 "Modulation: "
@@ -598,7 +574,6 @@ public class Main extends JFrame {
     }
 
     // Запуск MATLAB Engine
-
     private void ensureMatlabEngine() throws Exception {
         if (matlabEngine == null) {
             statusLabel.setText(
@@ -609,8 +584,7 @@ public class Main extends JFrame {
         }
     }
 
-    //Основний запуск дослідження
-
+    // Основний запуск дослідження
     private void runSimulation() {
         statusLabel.setText(
                 "Статус: виконання розрахунку..."
@@ -627,7 +601,8 @@ public class Main extends JFrame {
 
                         ensureMatlabEngine();
 
-                        // Перед запуском видаляємо старі файли,щоб Java не показувала результат від попереднього запуску
+                        // Перед запуском видаляємо старі файли,
+                        // щоб Java не показувала результат від попереднього запуску
                         deleteOldOutputFiles();
 
                         matlabEngine.eval(
@@ -636,7 +611,8 @@ public class Main extends JFrame {
                                         + "')"
                         );
 
-                        //У MATLAB передаємо коротке значення режиму. Для симуляції це Simulation, для SDR це SDR
+                        // У MATLAB передаємо коротке значення режиму.
+                        // Для симуляції це Simulation, для SDR це SDR.
                         boolean isSdrMode =
                                 modeBox.getSelectedItem()
                                         .toString()
@@ -747,8 +723,7 @@ public class Main extends JFrame {
         worker.execute();
     }
 
-    //Видалення старих файлів перед новим запуском
-
+    // Видалення старих файлів перед новим запуском
     private void deleteOldOutputFiles() {
         File folder = new File(exportDir);
 
@@ -781,16 +756,13 @@ public class Main extends JFrame {
         }
     }
 
-    //Повне оновлення інтерфейсу після MATLAB
-
-
+    // Повне оновлення інтерфейсу після MATLAB
     private void refreshAll() {
         loadPlots();
         loadSummary();
     }
 
-    //Завантаження вкладок із графіками
-
+    // Завантаження вкладок із графіками
     private void loadPlots() {
         plotsTabs.removeAll();
 
@@ -844,28 +816,49 @@ public class Main extends JFrame {
         );
     }
 
-    //Вкладка зі звичайним зображенням
-
+    // Вкладка з графіком, який можна масштабувати
     private JScrollPane createImageTab(
             File file,
             String missingText
     ) {
-        JLabel label = createImageLabel(
-                file,
-                missingText,
-                720,
-                470
+        if (!file.exists()) {
+            JLabel label = new JLabel(
+                    missingText,
+                    SwingConstants.CENTER
+            );
+
+            label.setForeground(Color.RED);
+            label.setFont(VALUE_FONT);
+
+            return new JScrollPane(label);
+        }
+
+        ZoomableImagePanel imagePanel =
+                new ZoomableImagePanel(file);
+
+        JScrollPane scrollPane =
+                new JScrollPane(imagePanel);
+
+        scrollPane.getVerticalScrollBar()
+                .setUnitIncrement(20);
+
+        scrollPane.getHorizontalScrollBar()
+                .setUnitIncrement(20);
+
+        SwingUtilities.invokeLater(() ->
+                imagePanel.fitToViewport(
+                        scrollPane.getViewport().getExtentSize()
+                )
         );
 
-        return new JScrollPane(label);
+        return scrollPane;
     }
 
     /*
        Вкладка порівняння.
        У Simulation Mode показується порівняння каналів.
        У SDR Mode показується порівняння SDR і моделі.
-      */
-
+    */
     private JPanel createComparisonTab() {
         JPanel panel = new JPanel(new BorderLayout(8, 8));
 
@@ -942,8 +935,7 @@ public class Main extends JFrame {
         return panel;
     }
 
-    //Створення JLabel для графіків
-
+    // Створення JLabel для графіків без масштабування
     private JLabel createImageLabel(
             File file,
             String missingText,
@@ -983,8 +975,7 @@ public class Main extends JFrame {
         return label;
     }
 
-    //Читання CSV-файлу в таблицю
-
+    // Читання CSV-файлу в таблицю
     private void loadCsvToTable(
             File csvFile,
             JTable table
@@ -1007,8 +998,6 @@ public class Main extends JFrame {
                 if (line.trim().isEmpty()) {
                     continue;
                 }
-
-                //MATLAB зберігає CSV
 
                 String[] values =
                         line.split(",", -1);
@@ -1047,8 +1036,7 @@ public class Main extends JFrame {
         }
     }
 
-    //Завантаження summary.csv у праву панель
-
+    // Завантаження summary.csv у праву панель
     private void loadSummary() {
         File summary =
                 new File(exportDir, "summary.csv");
@@ -1137,8 +1125,207 @@ public class Main extends JFrame {
         }
     }
 
-    // Точка входу в програму
+    // Панель для перегляду MATLAB-графіків із масштабуванням
+    private class ZoomableImagePanel extends JPanel {
 
+        private Image image;
+
+        private int imageWidth;
+        private int imageHeight;
+
+        private double scale = 1.0;
+        private double fitScale = 1.0;
+
+        private Point dragStart;
+
+        public ZoomableImagePanel(File file) {
+            ImageIcon icon =
+                    new ImageIcon(file.getAbsolutePath());
+
+            image = icon.getImage();
+            imageWidth = icon.getIconWidth();
+            imageHeight = icon.getIconHeight();
+
+            setBackground(Color.WHITE);
+
+            addMouseWheelListener(e -> {
+                if (image == null) {
+                    return;
+                }
+
+                double zoomFactor =
+                        e.getWheelRotation() < 0 ? 1.15 : 0.85;
+
+                double newScale =
+                        scale * zoomFactor;
+
+                if (newScale < 0.15) {
+                    newScale = 0.15;
+                }
+
+                if (newScale > 10.0) {
+                    newScale = 10.0;
+                }
+
+                scale = newScale;
+
+                revalidate();
+                repaint();
+            });
+
+            addMouseListener(new MouseAdapter() {
+                @Override
+                public void mousePressed(MouseEvent e) {
+                    dragStart = e.getPoint();
+
+                    setCursor(
+                            Cursor.getPredefinedCursor(
+                                    Cursor.MOVE_CURSOR
+                            )
+                    );
+                }
+
+                @Override
+                public void mouseReleased(MouseEvent e) {
+                    setCursor(Cursor.getDefaultCursor());
+                }
+
+                @Override
+                public void mouseClicked(MouseEvent e) {
+                    if (e.getClickCount() == 2) {
+                        scale = fitScale;
+                        revalidate();
+                        repaint();
+                    }
+                }
+            });
+
+            addMouseMotionListener(new MouseMotionAdapter() {
+                @Override
+                public void mouseDragged(MouseEvent e) {
+                    JViewport viewport =
+                            (JViewport) SwingUtilities
+                                    .getAncestorOfClass(
+                                            JViewport.class,
+                                            ZoomableImagePanel.this
+                                    );
+
+                    if (viewport == null || dragStart == null) {
+                        return;
+                    }
+
+                    Point viewPosition =
+                            viewport.getViewPosition();
+
+                    int dx =
+                            dragStart.x - e.getX();
+
+                    int dy =
+                            dragStart.y - e.getY();
+
+                    viewPosition.translate(dx, dy);
+
+                    scrollRectToVisible(
+                            new Rectangle(
+                                    viewPosition,
+                                    viewport.getSize()
+                            )
+                    );
+                }
+            });
+        }
+
+        public void fitToViewport(Dimension viewportSize) {
+            if (image == null ||
+                    imageWidth <= 0 ||
+                    imageHeight <= 0 ||
+                    viewportSize.width <= 0 ||
+                    viewportSize.height <= 0) {
+                return;
+            }
+
+            double scaleX =
+                    (viewportSize.width - 20.0) / imageWidth;
+
+            double scaleY =
+                    (viewportSize.height - 20.0) / imageHeight;
+
+            fitScale =
+                    Math.min(scaleX, scaleY);
+
+            if (fitScale > 1.0) {
+                fitScale = 1.0;
+            }
+
+            if (fitScale < 0.15) {
+                fitScale = 0.15;
+            }
+
+            scale = fitScale;
+
+            revalidate();
+            repaint();
+        }
+
+        @Override
+        public Dimension getPreferredSize() {
+            if (image == null) {
+                return new Dimension(720, 470);
+            }
+
+            return new Dimension(
+                    (int) (imageWidth * scale),
+                    (int) (imageHeight * scale)
+            );
+        }
+
+        @Override
+        protected void paintComponent(Graphics g) {
+            super.paintComponent(g);
+
+            if (image == null) {
+                g.setColor(Color.RED);
+                g.drawString(
+                        "Графік не знайдено",
+                        20,
+                        20
+                );
+                return;
+            }
+
+            Graphics2D g2 =
+                    (Graphics2D) g.create();
+
+            g2.setRenderingHint(
+                    RenderingHints.KEY_INTERPOLATION,
+                    RenderingHints.VALUE_INTERPOLATION_BILINEAR
+            );
+
+            g2.setRenderingHint(
+                    RenderingHints.KEY_RENDERING,
+                    RenderingHints.VALUE_RENDER_QUALITY
+            );
+
+            int drawWidth =
+                    (int) (imageWidth * scale);
+
+            int drawHeight =
+                    (int) (imageHeight * scale);
+
+            g2.drawImage(
+                    image,
+                    0,
+                    0,
+                    drawWidth,
+                    drawHeight,
+                    this
+            );
+
+            g2.dispose();
+        }
+    }
+
+    // Точка входу в програму
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
             Main window = new Main();
