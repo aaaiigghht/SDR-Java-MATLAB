@@ -19,7 +19,7 @@ public class Main extends JFrame {
     private final Color TEXT_COLOR = new Color(34, 74, 112);
     private final Color BORDER_BLUE = new Color(32, 70, 109);
 
-    //Шрифти 
+    //Шрифти
 
     private final Font TITLE_FONT =
             new Font("Cambria", Font.BOLD, 22);
@@ -46,7 +46,7 @@ public class Main extends JFrame {
     private final String exportDir =
             "C:/Users/USER/Desktop/SDR_Project/java_export";
 
-    // Параметри моделювання 
+    // Параметри моделювання
 
     private JComboBox<String> modulationBox;
     private JComboBox<String> channelBox;
@@ -72,7 +72,7 @@ public class Main extends JFrame {
     private JTextField rxGainField;
     private JTextField radioIdField;
 
-    // Основні результати 
+    // Основні результати
 
     private JLabel berLabel;
     private JLabel evmLabel;
@@ -80,7 +80,7 @@ public class Main extends JFrame {
     private JLabel bitsUsedLabel;
     private JLabel comparisonModeLabel;
 
-    // Обрані параметри 
+    // Обрані параметри
 
     private JLabel selectedModulationLabel;
     private JLabel selectedChannelLabel;
@@ -96,11 +96,11 @@ public class Main extends JFrame {
     private JLabel selectedRxGainLabel;
     private JLabel selectedRadioIdLabel;
 
-    // Статус програми 
+    // Статус програми
 
     private JLabel statusLabel;
 
-    // Вкладки з графіками 
+    // Вкладки з графіками
 
     private JTabbedPane plotsTabs;
 
@@ -123,7 +123,7 @@ public class Main extends JFrame {
         refreshAll();
     }
 
-    // Верхня частина вікна з назвою програми 
+    // Верхня частина вікна з назвою програми
 
     private JPanel createHeaderPanel() {
         JPanel panel = new JPanel(new BorderLayout());
@@ -131,7 +131,7 @@ public class Main extends JFrame {
         panel.setBorder(new EmptyBorder(10, 10, 5, 10));
 
         JLabel title = new JLabel(
-                "<html><center><b>Програмний додаток для досліджень SDR трансиверів на базі AD9361</b></center></html>",
+                "<html><center><b>Програмний додаток для досліджень з використанням SDR трансиверів на базі AD9361</b></center></html>",
                 SwingConstants.CENTER
         );
 
@@ -143,7 +143,7 @@ public class Main extends JFrame {
         return panel;
     }
 
-    // Основна частина програми: параметри, графіки, результати 
+    // Основна частина програми: параметри, графіки, результати
 
     private JPanel createMainPanel() {
         JPanel panel = new JPanel(new BorderLayout(10, 10));
@@ -170,7 +170,7 @@ public class Main extends JFrame {
         content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
         content.setBackground(BACKGROUND_COLOR);
 
-        // Панель параметрів моделювання 
+        // Панель параметрів моделювання
 
         JPanel modelingPanel =
                 new JPanel(new GridLayout(0, 2, 8, 8));
@@ -262,7 +262,7 @@ public class Main extends JFrame {
 
         updateSdrFieldsState();
 
-        //Кнопка запуску дослідження 
+        //Кнопка запуску дослідження
 
         JPanel buttonPanel = new JPanel();
         buttonPanel.setBackground(BACKGROUND_COLOR);
@@ -310,7 +310,7 @@ public class Main extends JFrame {
         return outer;
     }
 
-    // Центральна панель з графіками 
+    // Центральна панель з графіками
 
     private JPanel createPlotsPanel() {
         JPanel panel = new JPanel(new BorderLayout());
@@ -326,7 +326,7 @@ public class Main extends JFrame {
         return panel;
     }
 
-    // Права панель з числовими результатами 
+    // Права панель з числовими результатами
 
     private JPanel createResultsPanel() {
         JPanel outer = new JPanel();
@@ -339,7 +339,7 @@ public class Main extends JFrame {
                 BoxLayout.Y_AXIS
         ));
 
-        // Панель результатів 
+        // Панель результатів
 
         JPanel resultsPanel = new JPanel();
 
@@ -366,7 +366,7 @@ public class Main extends JFrame {
         resultsPanel.add(snrEstLabel);
         resultsPanel.add(comparisonModeLabel);
 
-        // Панель обраних параметрів 
+        // Панель обраних параметрів
 
         JPanel selectedPanel = new JPanel();
 
@@ -441,7 +441,7 @@ public class Main extends JFrame {
         return outer;
     }
 
-    // Невелике поле з підписом і компонентом 
+    // Невелике поле з підписом і компонентом
 
     private JPanel createCompactField(
             String labelText,
@@ -466,7 +466,7 @@ public class Main extends JFrame {
         return panel;
     }
 
-    // Створення текстових результатів справа 
+    // Створення текстових результатів справа
 
     private JLabel createResultLabel(String text) {
         JLabel label = new JLabel(text);
@@ -484,7 +484,7 @@ public class Main extends JFrame {
         return label;
     }
 
-    // Стиль рамок для блоків 
+    // Стиль рамок для блоків
 
     private TitledBorder createStyledBorder(String title) {
         Border border =
@@ -518,7 +518,7 @@ public class Main extends JFrame {
         radioIdField.setEnabled(enabled);
     }
 
-    // Оновлення блоку з вибраними параметрами 
+    // Оновлення блоку з вибраними параметрами
 
     private void updateSelectedParameters() {
         selectedModulationLabel.setText(
@@ -597,7 +597,7 @@ public class Main extends JFrame {
         }
     }
 
-   // Запуск MATLAB Engine
+    // Запуск MATLAB Engine
 
     private void ensureMatlabEngine() throws Exception {
         if (matlabEngine == null) {
@@ -627,7 +627,7 @@ public class Main extends JFrame {
 
                         ensureMatlabEngine();
 
-   // Перед запуском видаляємо старі файли,щоб Java не показувала результат від попереднього запуску
+                        // Перед запуском видаляємо старі файли,щоб Java не показувала результат від попереднього запуску
                         deleteOldOutputFiles();
 
                         matlabEngine.eval(
@@ -636,7 +636,7 @@ public class Main extends JFrame {
                                         + "')"
                         );
 
-   //У MATLAB передаємо коротке значення режиму. Для симуляції це Simulation, для SDR це SDR
+                        //У MATLAB передаємо коротке значення режиму. Для симуляції це Simulation, для SDR це SDR
                         boolean isSdrMode =
                                 modeBox.getSelectedItem()
                                         .toString()
@@ -860,7 +860,7 @@ public class Main extends JFrame {
         return new JScrollPane(label);
     }
 
-    /* 
+    /*
        Вкладка порівняння.
        У Simulation Mode показується порівняння каналів.
        У SDR Mode показується порівняння SDR і моделі.
@@ -1008,7 +1008,7 @@ public class Main extends JFrame {
                     continue;
                 }
 
-                //MATLAB зберігає CSV 
+                //MATLAB зберігає CSV
 
                 String[] values =
                         line.split(",", -1);
