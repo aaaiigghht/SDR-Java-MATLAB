@@ -49,7 +49,7 @@ function run_sdr_simulation_engine( ...
 
     if strcmpi(strtrim(char(modeType)), 'SDR')
         try
-            disp('=== SDR MODE ENABLED ===');
+            disp('SDR mode enabled');
 
             devStr = strtrim(char(sdrDevice));
             radioStr = strtrim(char(radioID));
@@ -124,7 +124,6 @@ function run_sdr_simulation_engine( ...
 
             %% Перевірка втрати семплів при передачі
             underflow = NaN;
-
             try
                 underflow = TxDevice(tx_data2transmitter);
 
@@ -133,7 +132,6 @@ function run_sdr_simulation_engine( ...
                 elseif isequal(underflow, 1)
                     warning('TX underflow detected: samples may be missing during transmission.');
                 end
-
             catch txCheckErr
                 warning('TX underflow check was skipped: %s', txCheckErr.message);
             end
@@ -212,6 +210,7 @@ function run_sdr_simulation_engine( ...
         end
 
     else
+    
         %% Simulation mode
         [rxWaveform, chanInfo] = applyChannel(txWaveform, cfg);
     end
@@ -231,24 +230,20 @@ function run_sdr_simulation_engine( ...
 
     %% Демодуляція
     rxBits = demodulateSymbols(rxSymbols, cfg.modType, M, bitsPerSym);
-
     minBitLen = min(length(txBits), length(rxBits));
     txBitsRef = txBits(1:minBitLen);
     rxBitsRef = rxBits(1:minBitLen);
 
     %% Оцінка якості
     [numErrors, ber] = biterr(txBitsRef, rxBitsRef);
-
     alpha = (txSymbolsRef' * rxSymbols) / (txSymbolsRef' * txSymbolsRef + 1e-15);
     txAligned = alpha * txSymbolsRef;
     errVec = rxSymbols - txAligned;
-
     evmRms = 100 * rms(errVec) / sqrt(mean(abs(txAligned).^2) + 1e-15);
     snrEst = 10 * log10(mean(abs(txAligned).^2) / (mean(abs(errVec).^2) + 1e-15));
 
     %% BER залежно від SNR
     berCurve = zeros(size(cfg.snrSweep));
-
     for k = 1:length(cfg.snrSweep)
         cfgTmp = cfg;
         cfgTmp.snrDb = cfg.snrSweep(k);
@@ -505,3 +500,9 @@ function obj = setSDRPropertyIfExists(obj, propName, propValue)
         end
     end
 end
+
+
+
+
+
+
