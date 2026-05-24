@@ -3,59 +3,60 @@ function run_sdr_simulation_engine( ...
     sps, rolloff, filterSpan, maxDopplerShift, ...
     kFactor, impulseProb, impulseAmp, outDir, ...
     modeType, sdrDevice, ipAddress, ...
-    centerFrequency, txGain, rxGain, radioID) 
-% MATLAB backend for Java GUI through MATLAB Engine API
+    centerFrequency, txGain, rxGain, radioID, mappingType)
+% MATLAB backend для Java GUI через MATLAB Engine API
 
     close all;
     clc;
     rng('default');
+    if nargin < 20 || isempty(mappingType)
+        mappingType = 'gray';
+    end
+
+    outDir = char(outDir);
 
     if ~exist(outDir, 'dir')
         mkdir(outDir);
     end
 
-    %% Основні параметри
-    cfg.modType = char(modType);
-    cfg.channelType = char(channelType);
-    cfg.numBits = double(numBits);
-    cfg.sps = double(sps);
-    cfg.rolloff = double(rolloff);
-    cfg.filterSpan = double(filterSpan);
-    cfg.snrDb = double(snrDb);
-    cfg.snrSweep = 0:2:24;
-    cfg.impulseProb = double(impulseProb);
-    cfg.impulseAmp  = double(impulseAmp);
-    cfg.maxDopplerShift = double(maxDopplerShift);
-    cfg.kFactor = double(kFactor);
-    cfg.fs = 1e6;
-    cfg.showEyeDiagram = true;
+    %% Основні параметри моделювання
+cfg.modType = char(modType);
+cfg.mappingType = normalizeMappingType(mappingType);
+cfg.mappingLabel = getMappingLabel(cfg.mappingType);
+cfg.channelType = char(channelType);
+cfg.numBits = double(numBits);
+cfg.sps = double(sps);
+cfg.rolloff = double(rolloff);
+cfg.filterSpan = double(filterSpan);
+cfg.snrDb = double(snrDb);
+cfg.snrSweep = 0:2:24;
+cfg.impulseProb = double(impulseProb);
+cfg.impulseAmp  = double(impulseAmp);
+cfg.maxDopplerShift = double(maxDopplerShift);
+cfg.kFactor = double(kFactor);
+cfg.fs = 1e6;
+cfg.showEyeDiagram = true;
 
-    %% Параметри модуляції
-    [M, bitsPerSym] = getModulationOrder(cfg.modType);
+%% Визначення параметрів модуляції
+[M, bitsPerSym] = getModulationOrder(cfg.modType);
+numSymbols = floor(cfg.numBits / bitsPerSym);
+numBitsUsed = numSymbols * bitsPerSym;
+txBits = randi([0 1], numBitsUsed, 1);
+txSymbols = modulateBits(txBits, cfg.modType, M, bitsPerSym, cfg.mappingType);
+%% Формування переданого сигналу
+rrc = rcosdesign(cfg.rolloff, cfg.filterSpan, cfg.sps, 'sqrt');
+txWaveform = upfirdn(txSymbols, rrc, cfg.sps, 1);
+txWaveform = txWaveform / rms(txWaveform);
 
-    numSymbols = floor(cfg.numBits / bitsPerSym);
-    numBitsUsed = numSymbols * bitsPerSym;
+%% Канал: симуляція або реальний SDR
+if strcmpi(strtrim(char(modeType)), 'SDR')
+    try
+        disp('SDR MODE ENABLED');
+        devStr = strtrim(char(sdrDevice));
+        radioStr = strtrim(char(radioID));
+        ipStr = strtrim(char(ipAddress));
 
-    txBits = randi([0 1], numBitsUsed, 1);
-    txSymbols = modulateBits(txBits, cfg.modType, M, bitsPerSym);
-
-    %% Формування сигналу
-    rrc = rcosdesign(cfg.rolloff, cfg.filterSpan, cfg.sps, 'sqrt');
-    txWaveform = upfirdn(txSymbols, rrc, cfg.sps, 1);
-    txWaveform = txWaveform / rms(txWaveform);
-
-       %% Канал
-    %% SDR / Simulation mode
-
-    if strcmpi(strtrim(char(modeType)), 'SDR')
-        try
-            disp('SDR mode enabled');
-
-            devStr = strtrim(char(sdrDevice));
-            radioStr = strtrim(char(radioID));
-            ipStr = strtrim(char(ipAddress));
-
-            %% Вибір RadioID
+            %% Вибір RadioID залежно від типу SDR
             switch upper(devStr)
                 case 'PLUTO'
                     if isempty(radioStr)
@@ -82,15 +83,15 @@ function run_sdr_simulation_engine( ...
             gain_tx   = double(txGain);
             gain_rx   = double(rxGain);
 
-            %% Кількість семплів для прийому
+            %% Кількість семплів, які приймач буде читати за один кадр
             samples2receive = max(4096, ceil(1.2 * numel(txWaveform)));
 
-            %% Масштабування сигналу для SDR, щоб уникнути перевантаження DAC
+            %% Масштабування сигналу, щоб не перевантажити передавач
             tx_data2transmitter = txWaveform(:);
             tx_data2transmitter = 0.8 * tx_data2transmitter / ...
                 (max(abs(tx_data2transmitter)) + eps);
 
-            %% Передавач Pluto / AD936x-compatible
+            %% Налаштування передавача
             TxDevice = sdrtx('Pluto', ...
                 'RadioID', radioStr, ...
                 'CenterFrequency', f_carrier, ...
@@ -103,7 +104,7 @@ function run_sdr_simulation_engine( ...
             TxDevice = setSDRPropertyIfExists(TxDevice, 'FrequencyCorrection', 0);
             TxDevice = setSDRPropertyIfExists(TxDevice, 'DataSourceSelect', 'Input Port');
 
-            %% Приймач Pluto / AD936x-compatible
+            %% Налаштування приймача
             RxDevice = sdrrx('Pluto', ...
                 'RadioID', radioStr, ...
                 'CenterFrequency', f_carrier + 0.0, ...
@@ -122,8 +123,9 @@ function run_sdr_simulation_engine( ...
             RxDevice = setSDRPropertyIfExists(RxDevice, 'EnableRFDCCorrection', true);
             RxDevice = setSDRPropertyIfExists(RxDevice, 'EnableBasebandDCCorrection', true);
 
-            %% Перевірка втрати семплів при передачі
+            %% Перевірка underflow при передачі
             underflow = NaN;
+
             try
                 underflow = TxDevice(tx_data2transmitter);
 
@@ -132,6 +134,7 @@ function run_sdr_simulation_engine( ...
                 elseif isequal(underflow, 1)
                     warning('TX underflow detected: samples may be missing during transmission.');
                 end
+
             catch txCheckErr
                 warning('TX underflow check was skipped: %s', txCheckErr.message);
             end
@@ -142,7 +145,7 @@ function run_sdr_simulation_engine( ...
             transmitRepeat(TxDevice, tx_data2transmitter);
             pause(0.5);
 
-            %% Прийом з перевіркою datavalid / overflow
+            %% Прийом сигналу з перевіркою datavalid / overflow
             rxWaveform = [];
             maxRxAttempts = 10;
 
@@ -210,12 +213,11 @@ function run_sdr_simulation_engine( ...
         end
 
     else
-    
-        %% Simulation mode
+        %% Звичайний режим симуляції
         [rxWaveform, chanInfo] = applyChannel(txWaveform, cfg);
     end
-    
-    %% Прийом
+
+    %% Прийом і узгоджена фільтрація
     rxMatched = upfirdn(rxWaveform, rrc, 1, 1);
     totalDelay = cfg.filterSpan * cfg.sps;
 
@@ -228,22 +230,160 @@ function run_sdr_simulation_engine( ...
     rxSymbols = rxSymbols(1:min(length(rxSymbols), length(txSymbols)));
     txSymbolsRef = txSymbols(1:length(rxSymbols));
 
-    %% Демодуляція
-    rxBits = demodulateSymbols(rxSymbols, cfg.modType, M, bitsPerSym);
-    minBitLen = min(length(txBits), length(rxBits));
-    txBitsRef = txBits(1:minBitLen);
-    rxBitsRef = rxBits(1:minBitLen);
+%% Демодуляція
+rxBits = demodulateSymbols(rxSymbols, cfg.modType, M, bitsPerSym, cfg.mappingType);
+minBitLen = min(length(txBits), length(rxBits));
+txBitsRef = txBits(1:minBitLen);
+rxBitsRef = rxBits(1:minBitLen);
 
-    %% Оцінка якості
+%% Розрахунок основних метрик
     [numErrors, ber] = biterr(txBitsRef, rxBitsRef);
-    alpha = (txSymbolsRef' * rxSymbols) / (txSymbolsRef' * txSymbolsRef + 1e-15);
+
+    alpha = (txSymbolsRef' * rxSymbols) / ...
+        (txSymbolsRef' * txSymbolsRef + 1e-15);
+
     txAligned = alpha * txSymbolsRef;
     errVec = rxSymbols - txAligned;
-    evmRms = 100 * rms(errVec) / sqrt(mean(abs(txAligned).^2) + 1e-15);
-    snrEst = 10 * log10(mean(abs(txAligned).^2) / (mean(abs(errVec).^2) + 1e-15));
 
-    %% BER залежно від SNR
+    evmRms = 100 * rms(errVec) / ...
+        sqrt(mean(abs(txAligned).^2) + 1e-15);
+
+    snrEst = 10 * log10( ...
+        mean(abs(txAligned).^2) / ...
+        (mean(abs(errVec).^2) + 1e-15));
+
+    %% Порівняння результатів
+    comparisonAvailable = false;
+    comparisonMode = 'None';
+    simMetrics = struct();
+    comparisonData = {};
+    chanInfoSimRef = struct();
+
+    isSDRMode = strcmpi(strtrim(char(modeType)), 'SDR');
+    isRealSDR = isfield(chanInfo, 'name') && contains(chanInfo.name, 'Real SDR Link');
+
+    if isSDRMode && isRealSDR
+        try
+            disp('=== COMPARISON MODE: SDR vs SIMULATION ===');
+
+            %% У SDR-режимі порівнюємо реальний прийом із математичною моделлю
+            [rxWaveformSimRef, chanInfoSimRef] = applyChannel(txWaveform, cfg);
+
+            simMetrics = calculateLinkMetrics( ...
+                rxWaveformSimRef, rrc, cfg, ...
+                txBits, txSymbols, M, bitsPerSym);
+
+            comparisonData = {
+                'Metric',              'Simulation',               'SDR',        'AbsoluteDifference';
+                'BER',                 simMetrics.ber,              ber,          abs(simMetrics.ber - ber);
+                'BitErrors',           simMetrics.numErrors,        numErrors,    abs(simMetrics.numErrors - numErrors);
+                'SNR_Est_dB',          simMetrics.snrEst,           snrEst,       abs(simMetrics.snrEst - snrEst);
+                'EVM_RMS_percent',     simMetrics.evmRms,           evmRms,       abs(simMetrics.evmRms - evmRms);
+                'BitsUsed',            simMetrics.bitsUsed,         minBitLen,    abs(simMetrics.bitsUsed - minBitLen);
+                'RxSymbolsUsed',       simMetrics.rxSymbolsUsed,    length(rxSymbols), abs(simMetrics.rxSymbolsUsed - length(rxSymbols))
+            };
+
+            writecell(comparisonData, fullfile(outDir, 'comparison_results.csv'));
+
+            fCmp = figure('Visible', 'off', 'Color', 'w');
+
+            subplot(3, 1, 1);
+            bar([simMetrics.ber, ber]);
+            set(gca, 'XTickLabel', {'Simulation', 'SDR'});
+            ylabel('BER');
+            title('BER: Simulation vs SDR');
+            grid on;
+
+            subplot(3, 1, 2);
+            bar([simMetrics.snrEst, snrEst]);
+            set(gca, 'XTickLabel', {'Simulation', 'SDR'});
+            ylabel('SNR Est. (dB)');
+            title('Estimated SNR: Simulation vs SDR');
+            grid on;
+
+            subplot(3, 1, 3);
+            bar([simMetrics.evmRms, evmRms]);
+            set(gca, 'XTickLabel', {'Simulation', 'SDR'});
+            ylabel('EVM RMS (%)');
+            title('EVM: Simulation vs SDR');
+            grid on;
+
+            exportgraphics(fCmp, fullfile(outDir, 'comparison_results.png'), 'Resolution', 200);
+            close(fCmp);
+
+            comparisonAvailable = true;
+            comparisonMode = 'SDR vs Simulation';
+
+        catch ME
+            warning('SDR comparison calculation failed: %s', ME.message);
+        end
+
+    else
+        try
+            disp('=== COMPARISON MODE: SIMULATION CHANNELS ===');
+
+            %% У режимі симуляції порівнюємо різні моделі каналу
+            channelList = {'AWGN', 'Rayleigh', 'Rician', 'Impulse', 'Combined'};
+            berMatrix = zeros(length(cfg.snrSweep), length(channelList));
+
+            for ch = 1:length(channelList)
+                cfgCmp = cfg;
+                cfgCmp.channelType = channelList{ch};
+
+                berMatrix(:, ch) = calculateBerCurveForChannel( ...
+                    txWaveform, rrc, cfgCmp, ...
+                    txBits, txSymbols, M, bitsPerSym);
+            end
+
+            comparisonHeader = [{'SNR_dB'}, channelList];
+
+            comparisonData = [
+                comparisonHeader;
+                num2cell([cfg.snrSweep(:), berMatrix])
+            ];
+
+            writecell(comparisonData, fullfile(outDir, 'comparison_results.csv'));
+
+            fCmp = figure('Visible', 'off', 'Color', 'w');
+
+            hold on;
+
+            for ch = 1:length(channelList)
+                semilogy( ...
+                    cfg.snrSweep, ...
+                    berMatrix(:, ch), ...
+                    '-o', ...
+                    'LineWidth', 1.3, ...
+                    'MarkerSize', 5 ...
+                );
+            end
+
+            hold off;
+
+            grid on;
+            xlabel('SNR (dB)');
+            ylabel('BER');
+            title(sprintf('Simulation comparison for %s modulation', cfg.modType));
+            legend(channelList, 'Location', 'southwest');
+
+            exportgraphics(fCmp, fullfile(outDir, 'comparison_results.png'), 'Resolution', 200);
+            close(fCmp);
+
+            simMetrics.channelList = channelList;
+            simMetrics.berMatrix = berMatrix;
+            simMetrics.snrSweep = cfg.snrSweep;
+
+            comparisonAvailable = true;
+            comparisonMode = 'Simulation channels comparison';
+
+        catch ME
+            warning('Simulation comparison calculation failed: %s', ME.message);
+        end
+    end
+
+    %% BER залежно від SNR для вибраного каналу
     berCurve = zeros(size(cfg.snrSweep));
+
     for k = 1:length(cfg.snrSweep)
         cfgTmp = cfg;
         cfgTmp.snrDb = cfg.snrSweep(k);
@@ -260,17 +400,24 @@ function run_sdr_simulation_engine( ...
         rxSymTmp = rxMatchedTmp(1:cfg.sps:end);
         rxSymTmp = rxSymTmp(1:min(length(rxSymTmp), length(txSymbols)));
 
-        rxBitsTmp = demodulateSymbols(rxSymTmp, cfg.modType, M, bitsPerSym);
-
+       rxBitsTmp = demodulateSymbols(rxSymTmp, cfg.modType, M, bitsPerSym, cfg.mappingType);
         minLenTmp = min(length(txBits), length(rxBitsTmp));
-        [~, berCurve(k)] = biterr(txBits(1:minLenTmp), rxBitsTmp(1:minLenTmp));
+
+        if minLenTmp == 0
+            berCurve(k) = NaN;
+        else
+            [~, berCurve(k)] = biterr(txBits(1:minLenTmp), rxBitsTmp(1:minLenTmp));
+        end
     end
 
-    %% Побудова та збереження графіків
+    %% Графік сузір'я
     f1 = figure('Visible', 'off', 'Color', 'w');
+
     plot(real(rxSymbols), imag(rxSymbols), '.', 'MarkerSize', 6);
     hold on;
     plot(real(txSymbolsRef), imag(txSymbolsRef), 'ro', 'MarkerSize', 4, 'LineWidth', 1.0);
+    hold off;
+
     grid on;
     axis equal;
     xlabel('In-Phase');
@@ -278,54 +425,69 @@ function run_sdr_simulation_engine( ...
     title(sprintf('Constellation: %s, Channel: %s, SNR = %.1f dB', ...
         cfg.modType, cfg.channelType, cfg.snrDb));
     legend('Received symbols', 'Ideal symbols', 'Location', 'best');
+
     exportgraphics(f1, fullfile(outDir, 'constellation.png'), 'Resolution', 200);
     close(f1);
 
-       % Eye diagram без окремого MATLAB-вікна
+    %% Eye diagram
     f2 = figure('Visible', 'off', 'Color', 'w');
+
     manualEyeDiagram(real(rxMatchedSync), cfg.sps);
     title(sprintf('Eye Diagram (%s)', cfg.modType));
+
     exportgraphics(f2, fullfile(outDir, 'eye_diagram.png'), 'Resolution', 200);
     close(f2);
+
+    %% Спектр прийнятого сигналу
     nfft = 4096;
     [pxx, f] = pwelch(rxWaveform, hamming(1024), 512, nfft, cfg.fs, 'centered');
 
     f3 = figure('Visible', 'off', 'Color', 'w');
+
     plot(f / 1e6, 10 * log10(pxx + eps), 'LineWidth', 1.2);
     grid on;
     xlabel('Frequency (MHz)');
     ylabel('PSD (dB/Hz)');
     title(sprintf('Received Signal Spectrum (%s channel)', cfg.channelType));
+
     exportgraphics(f3, fullfile(outDir, 'spectrum.png'), 'Resolution', 200);
     close(f3);
 
+    %% BER vs SNR для вибраного каналу
     f4 = figure('Visible', 'off', 'Color', 'w');
+
     semilogy(cfg.snrSweep, berCurve, '-o', 'LineWidth', 1.4, 'MarkerSize', 6);
     grid on;
     xlabel('SNR (dB)');
     ylabel('BER');
     title(sprintf('BER vs SNR for %s over %s channel', cfg.modType, cfg.channelType));
+
     exportgraphics(f4, fullfile(outDir, 'ber_vs_snr.png'), 'Resolution', 200);
     close(f4);
 
-    %% CSV
+    %% CSV-файли для Java
     writematrix([real(rxSymbols), imag(rxSymbols)], fullfile(outDir, 'constellation_points.csv'));
     writematrix([f(:), 10 * log10(pxx(:) + eps)], fullfile(outDir, 'spectrum.csv'));
     writematrix([cfg.snrSweep(:), berCurve(:)], fullfile(outDir, 'ber_curve.csv'));
 
-    summaryData = {
-        'Modulation', cfg.modType;
-        'Channel', cfg.channelType;
+   summaryData = {
+    'Modulation', cfg.modType;
+    'Mapping', cfg.mappingLabel;
+    'Mapping_MATLAB', cfg.mappingType;
+    'Channel', cfg.channelType;
         'BitsUsed', minBitLen;
         'SNR_Input_dB', cfg.snrDb;
         'SNR_Est_dB', snrEst;
         'BER', ber;
         'BitErrors', numErrors;
-        'EVM_RMS_percent', evmRms
+        'EVM_RMS_percent', evmRms;
+        'ComparisonAvailable', comparisonAvailable;
+        'ComparisonMode', comparisonMode
     };
 
     writecell(summaryData, fullfile(outDir, 'summary.csv'));
 
+    %% Збереження повних результатів у MAT-файл
     results.cfg         = cfg;
     results.txBits      = txBitsRef;
     results.rxBits      = rxBitsRef;
@@ -338,53 +500,87 @@ function run_sdr_simulation_engine( ...
     results.snrSweep    = cfg.snrSweep;
     results.chanInfo    = chanInfo;
 
+    results.comparisonAvailable = comparisonAvailable;
+    results.comparisonMode = comparisonMode;
+
+    if comparisonAvailable
+        results.comparisonMetrics = simMetrics;
+        results.comparisonTable = comparisonData;
+
+        if isSDRMode && isRealSDR
+            results.chanInfoSimulationReference = chanInfoSimRef;
+        end
+    end
+
     save(fullfile(outDir, 'pluto_plus_link_engine_results.mat'), 'results');
 end
 
 function [M, bitsPerSym] = getModulationOrder(modType)
     switch upper(modType)
-        case 'BPSK',   M = 2;
-        case 'QPSK',   M = 4;
-        case '8PSK',   M = 8;
-        case '16QAM',  M = 16;
-        case '64QAM',  M = 64;
-        case '256QAM', M = 256;
+        case 'BPSK'
+            M = 2;
+
+        case 'QPSK'
+            M = 4;
+
+        case '8PSK'
+            M = 8;
+
+        case '16QAM'
+            M = 16;
+
+        case '64QAM'
+            M = 64;
+
+        case '256QAM'
+            M = 256;
+
         otherwise
             error('Непідтримуваний тип модуляції: %s', modType);
     end
+
     bitsPerSym = log2(M);
 end
 
-function sym = modulateBits(bits, modType, M, bitsPerSym)
+function sym = modulateBits(bits, modType, M, bitsPerSym, mappingType)
     bits = bits(:);
     bitMatrix = reshape(bits, bitsPerSym, []).';
     symbolsInt = bi2de(bitMatrix, 'left-msb');
 
     switch upper(modType)
         case 'BPSK'
-            sym = pskmod(symbolsInt, M, 0, 'gray');
+            sym = pskmod(symbolsInt, M, 0, mappingType);
+
         case 'QPSK'
-            sym = pskmod(symbolsInt, M, pi/4, 'gray');
+            sym = pskmod(symbolsInt, M, pi/4, mappingType);
+
         case '8PSK'
-            sym = pskmod(symbolsInt, M, 0, 'gray');
+            sym = pskmod(symbolsInt, M, 0, mappingType);
+
         case {'16QAM','64QAM','256QAM'}
-            sym = qammod(symbolsInt, M, 'gray', 'UnitAveragePower', true);
+            sym = qammod(symbolsInt, M, mappingType, 'UnitAveragePower', true);
+
         otherwise
             error('Непідтримувана модуляція.');
     end
+
     sym = sym(:);
 end
 
-function bits = demodulateSymbols(sym, modType, M, bitsPerSym)
+function bits = demodulateSymbols(sym, modType, M, bitsPerSym, mappingType)
     switch upper(modType)
         case 'BPSK'
-            dataInt = pskdemod(sym, M, 0, 'gray');
+            dataInt = pskdemod(sym, M, 0, mappingType);
+
         case 'QPSK'
-            dataInt = pskdemod(sym, M, pi/4, 'gray');
+            dataInt = pskdemod(sym, M, pi/4, mappingType);
+
         case '8PSK'
-            dataInt = pskdemod(sym, M, 0, 'gray');
+            dataInt = pskdemod(sym, M, 0, mappingType);
+
         case {'16QAM','64QAM','256QAM'}
-            dataInt = qamdemod(sym, M, 'gray', 'UnitAveragePower', true);
+            dataInt = qamdemod(sym, M, mappingType, 'UnitAveragePower', true);
+
         otherwise
             error('Непідтримувана демодуляція.');
     end
@@ -414,6 +610,7 @@ function [rx, info] = applyChannel(tx, cfg)
             [faded, pathGains] = rayChan(tx);
             eqSig = faded ./ (pathGains + 1e-12);
             rx = awgn(eqSig, cfg.snrDb, 'measured');
+
             info.name = 'Rayleigh';
             info.pathGains = pathGains;
 
@@ -430,15 +627,19 @@ function [rx, info] = applyChannel(tx, cfg)
             [faded, pathGains] = ricChan(tx);
             eqSig = faded ./ (pathGains + 1e-12);
             rx = awgn(eqSig, cfg.snrDb, 'measured');
+
             info.name = 'Rician';
             info.pathGains = pathGains;
 
         case 'IMPULSE'
             rx = awgn(tx, cfg.snrDb, 'measured');
+
             impulseMask = rand(size(rx)) < cfg.impulseProb;
             impulseNoise = cfg.impulseAmp * ...
                 (randn(size(rx)) + 1j * randn(size(rx))) / sqrt(2);
+
             rx = rx + impulseMask .* impulseNoise;
+
             info.name = 'Impulse + AWGN';
             info.impulseCount = sum(impulseMask);
 
@@ -458,6 +659,7 @@ function [rx, info] = applyChannel(tx, cfg)
             impulseMask = rand(size(rx)) < cfg.impulseProb;
             impulseNoise = cfg.impulseAmp * ...
                 (randn(size(rx)) + 1j * randn(size(rx))) / sqrt(2);
+
             rx = rx + impulseMask .* impulseNoise;
 
             info.name = 'Rayleigh + AWGN + Impulse';
@@ -468,27 +670,129 @@ function [rx, info] = applyChannel(tx, cfg)
             error('Непідтримуваний тип каналу: %s', cfg.channelType);
     end
 end
-function manualEyeDiagram(sig, sps)
-% Ручна побудова eye diagram без eyediagram()
 
-    numTraces = min(200, floor(length(sig) / (2 * sps)));
-    hold on;
-    for k = 1:numTraces
-        idx = (k - 1) * 2 * sps + 1 : k * 2 * sps;
-        if idx(end) <= length(sig)
-            t = linspace(-1, 1, 2 * sps);
-            plot(t, sig(idx), 'Color', [0.2 0.5 0.9 0.25], 'LineWidth', 0.6);
+function metrics = calculateLinkMetrics(rxWaveform, rrc, cfg, txBits, txSymbols, M, bitsPerSym)
+% Окрема функція для розрахунку метрик.
+% Використовується, коли треба порівняти SDR-прийом із симуляційним сигналом.
+
+    rxWaveform = rxWaveform(:);
+
+    rxMatched = upfirdn(rxWaveform, rrc, 1, 1);
+    totalDelay = cfg.filterSpan * cfg.sps;
+
+    if length(rxMatched) <= totalDelay
+        error('Сигнал надто короткий після matched filtering у calculateLinkMetrics.');
+    end
+
+    rxMatchedSync = rxMatched(totalDelay + 1:end);
+    rxSymbolsLocal = rxMatchedSync(1:cfg.sps:end);
+    rxSymbolsLocal = rxSymbolsLocal(1:min(length(rxSymbolsLocal), length(txSymbols)));
+
+    if isempty(rxSymbolsLocal)
+        error('Після синхронізації не залишилось символів для оцінювання метрик.');
+    end
+
+    txSymbolsRefLocal = txSymbols(1:length(rxSymbolsLocal));
+
+    rxBitsLocal = demodulateSymbols(rxSymbolsLocal, cfg.modType, M, bitsPerSym);
+
+    minBitLenLocal = min(length(txBits), length(rxBitsLocal));
+    txBitsRefLocal = txBits(1:minBitLenLocal);
+    rxBitsRefLocal = rxBitsLocal(1:minBitLenLocal);
+
+    [numErrorsLocal, berLocal] = biterr(txBitsRefLocal, rxBitsRefLocal);
+
+    alphaLocal = (txSymbolsRefLocal' * rxSymbolsLocal) / ...
+        (txSymbolsRefLocal' * txSymbolsRefLocal + 1e-15);
+
+    txAlignedLocal = alphaLocal * txSymbolsRefLocal;
+    errVecLocal = rxSymbolsLocal - txAlignedLocal;
+
+    evmRmsLocal = 100 * rms(errVecLocal) / ...
+        sqrt(mean(abs(txAlignedLocal).^2) + 1e-15);
+
+    snrEstLocal = 10 * log10( ...
+        mean(abs(txAlignedLocal).^2) / ...
+        (mean(abs(errVecLocal).^2) + 1e-15));
+
+    metrics.ber = berLocal;
+    metrics.numErrors = numErrorsLocal;
+    metrics.snrEst = snrEstLocal;
+    metrics.evmRms = evmRmsLocal;
+    metrics.bitsUsed = minBitLenLocal;
+    metrics.rxSymbolsUsed = length(rxSymbolsLocal);
+end
+
+function berCurveLocal = calculateBerCurveForChannel( ...
+    txWaveform, rrc, cfg, txBits, txSymbols, M, bitsPerSym)
+% Рахує BER vs SNR для одного каналу.
+% Саме ця функція потрібна для порівняння AWGN, Rayleigh, Rician та інших каналів.
+
+    berCurveLocal = zeros(size(cfg.snrSweep));
+    totalDelay = cfg.filterSpan * cfg.sps;
+
+    for k = 1:length(cfg.snrSweep)
+        cfgTmp = cfg;
+        cfgTmp.snrDb = cfg.snrSweep(k);
+
+        [rxWaveTmp, ~] = applyChannel(txWaveform, cfgTmp);
+        rxMatchedTmp = upfirdn(rxWaveTmp, rrc, 1, 1);
+
+        if length(rxMatchedTmp) <= totalDelay
+            berCurveLocal(k) = NaN;
+            continue;
+        end
+
+        rxMatchedTmp = rxMatchedTmp(totalDelay + 1:end);
+        rxSymTmp = rxMatchedTmp(1:cfg.sps:end);
+        rxSymTmp = rxSymTmp(1:min(length(rxSymTmp), length(txSymbols)));
+
+        if isempty(rxSymTmp)
+            berCurveLocal(k) = NaN;
+            continue;
+        end
+
+        rxBitsTmp = demodulateSymbols(rxSymTmp, cfg.modType, M, bitsPerSym);
+
+        minLenTmp = min(length(txBits), length(rxBitsTmp));
+
+        if minLenTmp == 0
+            berCurveLocal(k) = NaN;
+        else
+            [~, berCurveLocal(k)] = biterr( ...
+                txBits(1:minLenTmp), ...
+                rxBitsTmp(1:minLenTmp));
         end
     end
+end
+
+function manualEyeDiagram(sig, sps)
+% Ручна побудова eye diagram без окремої функції eyediagram().
+% Так простіше виводити графік у файл для Java-інтерфейсу.
+
+    numTraces = min(200, floor(length(sig) / (2 * sps)));
+
+    hold on;
+
+    for k = 1:numTraces
+        idx = (k - 1) * 2 * sps + 1 : k * 2 * sps;
+
+        if idx(end) <= length(sig)
+            t = linspace(-1, 1, 2 * sps);
+            plot(t, sig(idx), 'Color', [0.2 0.5 0.9], 'LineWidth', 0.6);
+        end
+    end
+
     hold off;
+
     grid on;
     xlabel('Time / T');
     ylabel('Amplitude');
 end
+
 function obj = setSDRPropertyIfExists(obj, propName, propValue)
-% Безпечне встановлення SDR-параметра.
-% Якщо у конкретній версії MATLAB / Support Package властивість недоступна,
-% основний код не падає, а просто пропускає це поле.
+% Безпечне встановлення SDR-параметрів.
+% Якщо певної властивості немає у цій версії MATLAB, код не падає.
 
     if isprop(obj, propName)
         try
@@ -499,8 +803,37 @@ function obj = setSDRPropertyIfExists(obj, propName, propValue)
     end
 end
 
+function mapping = normalizeMappingType(mappingType)
+% Перетворює значення з Java GUI у формат MATLAB:
+% Gray / gray / grey -> 'gray'
+% Binary / binary / bin -> 'bin'
 
+if nargin < 1 || isempty(mappingType)
+    mapping = 'gray';
+    return;
+end
 
+mappingRaw = lower(strtrim(char(mappingType)));
 
+switch mappingRaw
+    case {'gray', 'grey'}
+        mapping = 'gray';
 
+    case {'binary', 'bin'}
+        mapping = 'bin';
 
+    otherwise
+        warning('Невідомий тип відображення "%s". Використано Gray mapping.', mappingRaw);
+        mapping = 'gray';
+end
+end
+
+function label = getMappingLabel(mappingType)
+% Назва для графіків і summary.csv
+
+if strcmpi(mappingType, 'bin')
+    label = 'Binary';
+else
+    label = 'Gray';
+end
+end
