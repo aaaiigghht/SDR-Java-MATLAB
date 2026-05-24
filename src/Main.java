@@ -11,54 +11,35 @@ import java.util.Map;
 
 public class Main extends JFrame {
 
-    /* =========================================
-       КОЛЬОРИ ІНТЕРФЕЙСУ
-       ========================================= */
-
+    // Кольори інтерфейсу
     private final Color BACKGROUND_COLOR = new Color(236, 239, 244);
     private final Color PANEL_COLOR = new Color(243, 243, 243);
     private final Color TEXT_COLOR = new Color(34, 74, 112);
     private final Color BORDER_BLUE = new Color(32, 70, 109);
 
-    /* =========================================
-       ШРИФТИ
-       ========================================= */
-
+    // Шрифти
     private final Font TITLE_FONT =
             new Font("Cambria", Font.BOLD, 22);
-
     private final Font SECTION_FONT =
             new Font("Cambria", Font.BOLD, 14);
-
     private final Font LABEL_FONT =
             new Font("Cambria", Font.BOLD, 12);
-
     private final Font VALUE_FONT =
             new Font("Cambria", Font.PLAIN, 12);
-
     private final Font BUTTON_FONT =
             new Font("Cambria", Font.BOLD, 14);
 
-    /* =========================================
-       MATLAB
-       ========================================= */
-
+    // Матлаб
     private MatlabEngine matlabEngine;
-
     private final String matlabFolder =
             "C:/Users/USER/Desktop/SDR_Project/matlab";
-
     private final String exportDir =
             "C:/Users/USER/Desktop/SDR_Project/java_export";
 
-    /* =========================================
-       ПАРАМЕТРИ МОДЕЛЮВАННЯ
-       ========================================= */
-
+    // Параметри моделювання
     private JComboBox<String> modulationBox;
     private JComboBox<String> mappingBox;
     private JComboBox<String> channelBox;
-
     private JTextField bitsField;
     private JTextField snrField;
     private JTextField spsField;
@@ -69,22 +50,17 @@ public class Main extends JFrame {
     private JTextField impulseProbField;
     private JTextField impulseAmpField;
 
-    /* =========================================
-       ПАРАМЕТРИ SDR
-       ========================================= */
+    // Параметри sdr
 
     private JComboBox<String> modeBox;
     private JComboBox<String> sdrDeviceBox;
-
     private JTextField ipField;
     private JTextField frequencyField;
     private JTextField txGainField;
     private JTextField rxGainField;
     private JTextField radioIdField;
 
-    /* =========================================
-       ОСНОВНІ РЕЗУЛЬТАТИ
-       ========================================= */
+    // Основні результати
 
     private JLabel berLabel;
     private JLabel evmLabel;
@@ -92,17 +68,13 @@ public class Main extends JFrame {
     private JLabel bitsUsedLabel;
     private JLabel comparisonModeLabel;
 
-    /* =========================================
-       ОБРАНІ ПАРАМЕТРИ
-       ========================================= */
-
+    //Обрані параметри
     private JLabel selectedModulationLabel;
     private JLabel selectedMappingLabel;
     private JLabel selectedChannelLabel;
     private JLabel selectedBitsLabel;
     private JLabel selectedSnrLabel;
     private JLabel selectedSpsLabel;
-
     private JLabel selectedModeLabel;
     private JLabel selectedDeviceLabel;
     private JLabel selectedFrequencyLabel;
@@ -111,103 +83,68 @@ public class Main extends JFrame {
     private JLabel selectedRxGainLabel;
     private JLabel selectedRadioIdLabel;
 
-    /* =========================================
-       СТАТУС ПРОГРАМИ
-       ========================================= */
-
+    // Статус програми
     private JLabel statusLabel;
 
-    /* =========================================
-       ВКЛАДКИ З ГРАФІКАМИ
-       ========================================= */
-
+    //Вкладки з графіками
     private JTabbedPane plotsTabs;
-
     public Main() {
         setTitle(
                 "Програмний додаток для досліджень SDR трансиверів на базі AD9361"
         );
-
         setDefaultCloseOperation(EXIT_ON_CLOSE);
         setSize(1500, 860);
         setLocationRelativeTo(null);
-
         getContentPane().setBackground(BACKGROUND_COLOR);
         setLayout(new BorderLayout(10, 10));
-
         add(createHeaderPanel(), BorderLayout.NORTH);
         add(createMainPanel(), BorderLayout.CENTER);
-
         updateSelectedParameters();
         refreshAll();
     }
 
-    /* =========================================================
-       Верхня частина вікна з назвою програми
-       ========================================================= */
-
+    //Верхня частина вікна з назвою програми
     private JPanel createHeaderPanel() {
         JPanel panel = new JPanel(new BorderLayout());
         panel.setBackground(BACKGROUND_COLOR);
         panel.setBorder(new EmptyBorder(10, 10, 5, 10));
-
         JLabel title = new JLabel(
                 "<html><center><b>Програмний додаток для досліджень SDR трансиверів на базі AD9361</b></center></html>",
                 SwingConstants.CENTER
         );
-
         title.setFont(TITLE_FONT);
         title.setForeground(TEXT_COLOR);
-
         panel.add(title, BorderLayout.CENTER);
-
         return panel;
     }
 
-    /* =========================================================
-       Основна частина програми: параметри, графіки, результати
-       ========================================================= */
-
+    //Основна частина програми: параметри, графіки, результати
     private JPanel createMainPanel() {
         JPanel panel = new JPanel(new BorderLayout(10, 10));
-
         panel.setBackground(BACKGROUND_COLOR);
         panel.setBorder(new EmptyBorder(0, 10, 10, 10));
-
         panel.add(createControlPanel(), BorderLayout.WEST);
         panel.add(createPlotsPanel(), BorderLayout.CENTER);
         panel.add(createResultsPanel(), BorderLayout.EAST);
-
         return panel;
     }
 
-    /* =========================================================
-       Ліва панель з параметрами моделювання та SDR
-       ========================================================= */
-
+    //Ліва панель з параметрами моделювання та SDR
     private JPanel createControlPanel() {
         JPanel outer = new JPanel(new BorderLayout());
-
         outer.setPreferredSize(new Dimension(370, 760));
         outer.setBackground(BACKGROUND_COLOR);
-
         JPanel content = new JPanel();
         content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
         content.setBackground(BACKGROUND_COLOR);
 
-        /* =========================================
-           Панель параметрів моделювання
-           ========================================= */
-
+        //Панель параметрів моделювання
         JPanel modelingPanel =
                 new JPanel(new GridLayout(0, 2, 8, 8));
-
         modelingPanel.setBorder(
                 createStyledBorder("Параметри моделювання")
         );
-
         modelingPanel.setBackground(PANEL_COLOR);
-
         modulationBox = new JComboBox<>(new String[]{
                 "BPSK",
                 "QPSK",
@@ -220,7 +157,6 @@ public class Main extends JFrame {
                 "Gray",
                 "Binary"
         });
-
         channelBox = new JComboBox<>(new String[]{
                 "AWGN",
                 "Rayleigh",
@@ -228,7 +164,6 @@ public class Main extends JFrame {
                 "Impulse",
                 "Combined"
         });
-
         bitsField = new JTextField("48000");
         snrField = new JTextField("18");
         spsField = new JTextField("8");
@@ -252,24 +187,17 @@ public class Main extends JFrame {
         modelingPanel.add(createCompactField("Impulse prob", impulseProbField));
         modelingPanel.add(createCompactField("Impulse amp", impulseAmpField));
 
-        /* =========================================
-           Панель параметрів SDR
-           ========================================= */
-
+        //Панель параметрів SDR
         JPanel sdrPanel =
                 new JPanel(new GridLayout(0, 2, 8, 8));
-
         sdrPanel.setBorder(
                 createStyledBorder("SDR налаштування")
         );
-
         sdrPanel.setBackground(PANEL_COLOR);
-
         modeBox = new JComboBox<>(new String[]{
                 "Simulation Mode",
                 "SDR Transceiver Mode"
         });
-
         sdrDeviceBox = new JComboBox<>(new String[]{
                 "Pluto",
                 "AD9361"
@@ -293,16 +221,11 @@ public class Main extends JFrame {
             updateSdrFieldsState();
             updateSelectedParameters();
         });
-
         updateSdrFieldsState();
 
-        /* =========================================
-           Кнопка запуску дослідження
-           ========================================= */
-
+        //Кнопка запуску дослідження
         JPanel buttonPanel = new JPanel();
         buttonPanel.setBackground(BACKGROUND_COLOR);
-
         buttonPanel.setLayout(new BoxLayout(
                 buttonPanel,
                 BoxLayout.Y_AXIS
@@ -310,97 +233,69 @@ public class Main extends JFrame {
 
         JButton runButton =
                 new JButton("Запустити дослідження");
-
         runButton.setFont(BUTTON_FONT);
         runButton.setForeground(TEXT_COLOR);
         runButton.setFocusPainted(false);
         runButton.setAlignmentX(Component.CENTER_ALIGNMENT);
-
         runButton.setPreferredSize(
                 new Dimension(230, 42)
         );
-
         runButton.setMaximumSize(
                 new Dimension(230, 42)
         );
-
         runButton.addActionListener(e -> runSimulation());
-
         statusLabel = new JLabel("Статус: готово");
         statusLabel.setForeground(TEXT_COLOR);
         statusLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
-
         buttonPanel.add(Box.createVerticalStrut(10));
         buttonPanel.add(runButton);
         buttonPanel.add(Box.createVerticalStrut(10));
         buttonPanel.add(statusLabel);
-
         content.add(modelingPanel);
         content.add(Box.createVerticalStrut(12));
         content.add(sdrPanel);
         content.add(Box.createVerticalStrut(15));
         content.add(buttonPanel);
-
         outer.add(content, BorderLayout.NORTH);
-
         return outer;
     }
 
-    /* =========================================================
-       Центральна панель з графіками
-       ========================================================= */
-
+    //Центральна панель з графіками
     private JPanel createPlotsPanel() {
         JPanel panel = new JPanel(new BorderLayout());
-
         panel.setBackground(PANEL_COLOR);
         panel.setBorder(createStyledBorder("Графіки та порівняння"));
-
         plotsTabs = new JTabbedPane();
         plotsTabs.setFont(VALUE_FONT);
-
         panel.add(plotsTabs, BorderLayout.CENTER);
-
         return panel;
     }
 
-    /* =========================================================
-       Права панель з числовими результатами
-       ========================================================= */
-
+    //Права панель з числовими результатами
     private JPanel createResultsPanel() {
         JPanel outer = new JPanel();
-
         outer.setPreferredSize(new Dimension(330, 760));
         outer.setBackground(BACKGROUND_COLOR);
-
         outer.setLayout(new BoxLayout(
                 outer,
                 BoxLayout.Y_AXIS
         ));
 
-        /* =========================================
-           Панель результатів
-           ========================================= */
-
+        //Панель результатів
         JPanel resultsPanel = new JPanel();
-
         resultsPanel.setLayout(new BoxLayout(
                 resultsPanel,
                 BoxLayout.Y_AXIS
         ));
-
         resultsPanel.setBackground(PANEL_COLOR);
         resultsPanel.setBorder(
                 createStyledBorder("Результати")
         );
-
         bitsUsedLabel = createResultLabel("Bits used: -");
         berLabel = createResultLabel("BER: -");
         evmLabel = createResultLabel("EVM RMS: -");
         snrEstLabel = createResultLabel("SNR est: -");
         comparisonModeLabel = createResultLabel("Comparison: -");
-
         resultsPanel.add(Box.createVerticalStrut(10));
         resultsPanel.add(bitsUsedLabel);
         resultsPanel.add(berLabel);
@@ -408,17 +303,12 @@ public class Main extends JFrame {
         resultsPanel.add(snrEstLabel);
         resultsPanel.add(comparisonModeLabel);
 
-        /* =========================================
-           Панель обраних параметрів
-           ========================================= */
-
+        //Панель обраних параметрів
         JPanel selectedPanel = new JPanel();
-
         selectedPanel.setLayout(new BoxLayout(
                 selectedPanel,
                 BoxLayout.Y_AXIS
         ));
-
         selectedPanel.setBackground(PANEL_COLOR);
         selectedPanel.setBorder(
                 createStyledBorder("Обрані параметри")
@@ -452,16 +342,13 @@ public class Main extends JFrame {
                 createResultLabel("Radio ID: -");
 
         selectedPanel.add(Box.createVerticalStrut(10));
-
         selectedPanel.add(selectedModulationLabel);
         selectedPanel.add(selectedMappingLabel);
         selectedPanel.add(selectedChannelLabel);
         selectedPanel.add(selectedBitsLabel);
         selectedPanel.add(selectedSnrLabel);
         selectedPanel.add(selectedSpsLabel);
-
         selectedPanel.add(Box.createVerticalStrut(10));
-
         selectedPanel.add(selectedModeLabel);
         selectedPanel.add(selectedDeviceLabel);
         selectedPanel.add(selectedFrequencyLabel);
@@ -473,81 +360,56 @@ public class Main extends JFrame {
         outer.add(resultsPanel);
         outer.add(Box.createVerticalStrut(12));
         outer.add(selectedPanel);
-
         return outer;
     }
 
-    /* =========================================================
-       Невелике поле з підписом і компонентом
-       ========================================================= */
-
+    // Невелике поле з підписом і компонентом
     private JPanel createCompactField(
             String labelText,
             JComponent component
     ) {
         JPanel panel = new JPanel(new BorderLayout(3, 3));
-
         panel.setBackground(PANEL_COLOR);
-
         JLabel label = new JLabel(labelText);
         label.setFont(LABEL_FONT);
         label.setForeground(TEXT_COLOR);
-
         component.setFont(VALUE_FONT);
         component.setPreferredSize(
                 new Dimension(120, 26)
         );
-
         panel.add(label, BorderLayout.NORTH);
         panel.add(component, BorderLayout.CENTER);
-
         return panel;
     }
 
-    /* =========================================================
-       Створення текстових результатів справа
-       ========================================================= */
-
+    //Створення текстових результатів справа
     private JLabel createResultLabel(String text) {
         JLabel label = new JLabel(text);
-
         label.setFont(
                 new Font("Cambria", Font.PLAIN, 14)
         );
-
         label.setForeground(TEXT_COLOR);
-
         label.setBorder(
                 new EmptyBorder(6, 12, 6, 12)
         );
-
         return label;
     }
 
-    /* =========================================================
-       Стиль рамок для блоків
-       ========================================================= */
-
+    //Стиль рамок для блоків
     private TitledBorder createStyledBorder(String title) {
         Border border =
                 BorderFactory.createLineBorder(
                         BORDER_BLUE,
                         1
                 );
-
         TitledBorder titledBorder =
                 new TitledBorder(border, title);
-
         titledBorder.setTitleColor(BORDER_BLUE);
         titledBorder.setTitleFont(SECTION_FONT);
-
         return titledBorder;
     }
 
-    /* =========================================================
-       Вмикаємо SDR-поля тільки тоді, коли вибраний SDR-режим
-       ========================================================= */
-
+    //Вмикаємо SDR-поля тільки тоді, коли вибраний SDR-режим
     private void updateSdrFieldsState() {
         boolean enabled =
                 modeBox.getSelectedItem()
@@ -562,10 +424,7 @@ public class Main extends JFrame {
         radioIdField.setEnabled(enabled);
     }
 
-    /* =========================================================
-       Оновлення блоку з вибраними параметрами
-       ========================================================= */
-
+    //Оновлення блоку з вибраними параметрами
     private void updateSelectedParameters() {
         selectedModulationLabel.setText(
                 "Modulation: "
@@ -595,7 +454,6 @@ public class Main extends JFrame {
                 modeBox.getSelectedItem()
                         .toString()
                         .contains("SDR");
-
         selectedModeLabel.setVisible(true);
         selectedModeLabel.setText(
                 "Mode: "
@@ -614,27 +472,22 @@ public class Main extends JFrame {
                     "SDR Device: "
                             + sdrDeviceBox.getSelectedItem()
             );
-
             selectedFrequencyLabel.setText(
                     "Frequency: "
                             + frequencyField.getText()
             );
-
             selectedIpLabel.setText(
                     "IP Address: "
                             + ipField.getText()
             );
-
             selectedTxGainLabel.setText(
                     "TX Gain: "
                             + txGainField.getText()
             );
-
             selectedRxGainLabel.setText(
                     "RX Gain: "
                             + rxGainField.getText()
             );
-
             selectedRadioIdLabel.setText(
                     "Radio ID: "
                             + radioIdField.getText()
@@ -642,31 +495,22 @@ public class Main extends JFrame {
         }
     }
 
-    /* =========================================================
-       Запуск MATLAB Engine
-       ========================================================= */
-
+    // Запуск MATLAB Engine
     private void ensureMatlabEngine() throws Exception {
         if (matlabEngine == null) {
             statusLabel.setText(
                     "Статус: запуск MATLAB..."
             );
-
             matlabEngine = MatlabEngine.startMatlab();
         }
     }
 
-    /* =========================================================
-       Основний запуск дослідження
-       ========================================================= */
-
+    //Основний запуск дослідження
     private void runSimulation() {
         statusLabel.setText(
                 "Статус: виконання розрахунку..."
         );
-
         updateSelectedParameters();
-
         SwingWorker<Void, Void> worker =
                 new SwingWorker<>() {
 
@@ -696,53 +540,41 @@ public class Main extends JFrame {
                                 modeBox.getSelectedItem()
                                         .toString()
                                         .contains("SDR");
-
                         String matlabMode =
                                 isSdrMode ? "SDR" : "Simulation";
 
                         matlabEngine.feval(
                                 0,
                                 "run_sdr_simulation_engine",
-
                                 modulationBox.getSelectedItem().toString(),
                                 channelBox.getSelectedItem().toString(),
-
                                 Double.parseDouble(
                                         bitsField.getText()
                                 ),
-
                                 Double.parseDouble(
                                         snrField.getText()
                                 ),
-
                                 Double.parseDouble(
                                         spsField.getText()
                                 ),
-
                                 Double.parseDouble(
                                         rolloffField.getText()
                                 ),
-
                                 Double.parseDouble(
                                         filterSpanField.getText()
                                 ),
-
                                 Double.parseDouble(
                                         dopplerField.getText()
                                 ),
-
                                 Double.parseDouble(
                                         kFactorField.getText()
                                 ),
-
                                 Double.parseDouble(
                                         impulseProbField.getText()
                                 ),
-
                                 Double.parseDouble(
                                         impulseAmpField.getText()
                                 ),
-
                                 exportDir.replace("\\", "/"),
 
                                 /*
@@ -752,19 +584,15 @@ public class Main extends JFrame {
                                 matlabMode,
                                 sdrDeviceBox.getSelectedItem().toString(),
                                 ipField.getText(),
-
                                 Double.parseDouble(
                                         frequencyField.getText()
                                 ),
-
                                 Double.parseDouble(
                                         txGainField.getText()
                                 ),
-
                                 Double.parseDouble(
                                         rxGainField.getText()
                                 ),
-
                                 radioIdField.getText(),
                                 mappingBox.getSelectedItem().toString()
                         );
@@ -776,20 +604,15 @@ public class Main extends JFrame {
                     protected void done() {
                         try {
                             get();
-
                             refreshAll();
-
                             statusLabel.setText(
                                     "Статус: завершено"
                             );
-
                         } catch (Exception ex) {
                             refreshAll();
-
                             statusLabel.setText(
                                     "Статус: помилка"
                             );
-
                             JOptionPane.showMessageDialog(
                                     Main.this,
                                     ex.getMessage(),
@@ -803,24 +626,18 @@ public class Main extends JFrame {
         worker.execute();
     }
 
-    /* =========================================================
-       Видалення старих файлів перед новим запуском
-       ========================================================= */
-
+    //Видалення старих файлів перед новим запуском
     private void deleteOldOutputFiles() {
         File folder = new File(exportDir);
-
         if (!folder.exists()) {
             folder.mkdirs();
         }
-
         String[] files = {
                 "constellation.png",
                 "spectrum.png",
                 "ber_vs_snr.png",
                 "eye_diagram.png",
                 "comparison_results.png",
-
                 "summary.csv",
                 "constellation_points.csv",
                 "spectrum.csv",
@@ -832,29 +649,21 @@ public class Main extends JFrame {
 
         for (String fileName : files) {
             File file = new File(folder, fileName);
-
             if (file.exists()) {
                 file.delete();
             }
         }
     }
 
-    /* =========================================================
-       Повне оновлення інтерфейсу після MATLAB
-       ========================================================= */
-
+    //Повне оновлення інтерфейсу після MATLAB
     private void refreshAll() {
         loadPlots();
         loadSummary();
     }
 
-    /* =========================================================
-       Завантаження вкладок із графіками
-       ========================================================= */
-
+    //Завантаження вкладок із графіками
     private void loadPlots() {
         plotsTabs.removeAll();
-
         plotsTabs.addTab(
                 "Constellation",
                 createImageTab(
@@ -865,7 +674,6 @@ public class Main extends JFrame {
                         "Файл constellation.png не знайдено"
                 )
         );
-
         plotsTabs.addTab(
                 "Spectrum",
                 createImageTab(
@@ -876,7 +684,6 @@ public class Main extends JFrame {
                         "Файл spectrum.png не знайдено"
                 )
         );
-
         plotsTabs.addTab(
                 "BER vs SNR",
                 createImageTab(
@@ -887,7 +694,6 @@ public class Main extends JFrame {
                         "Файл ber_vs_snr.png не знайдено"
                 )
         );
-
         plotsTabs.addTab(
                 "Eye Diagram",
                 createImageTab(
@@ -898,17 +704,13 @@ public class Main extends JFrame {
                         "Файл eye_diagram.png не знайдено"
                 )
         );
-
         plotsTabs.addTab(
                 "Порівняння",
                 createComparisonTab()
         );
     }
 
-    /* =========================================================
-       Вкладка зі звичайним зображенням
-       ========================================================= */
-
+    //Вкладка зі звичайним зображенням
     private JScrollPane createImageTab(
             File file,
             String missingText
@@ -923,11 +725,11 @@ public class Main extends JFrame {
         return new JScrollPane(label);
     }
 
-    /* =========================================================
+    /*
        Вкладка порівняння.
        У Simulation Mode тут показується порівняння каналів.
        У SDR Mode тут показується порівняння SDR і моделі.
-       ========================================================= */
+    */
 
     private JPanel createComparisonTab() {
         JPanel panel = new JPanel(new BorderLayout(8, 8));
@@ -947,49 +749,38 @@ public class Main extends JFrame {
                 720,
                 330
         );
-
         JTable comparisonTable = new JTable();
         comparisonTable.setFont(VALUE_FONT);
         comparisonTable.setRowHeight(24);
         comparisonTable.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
-
         if (comparisonCsv.exists()) {
             loadCsvToTable(comparisonCsv, comparisonTable);
         } else {
             DefaultTableModel model = new DefaultTableModel();
-
             model.addColumn("Параметр");
             model.addColumn("Значення");
-
             model.addRow(new Object[]{
                     "Стан",
                     "Файл comparison_results.csv не знайдено"
             });
-
             model.addRow(new Object[]{
                     "Можлива причина",
                     "MATLAB ще не створив файл порівняння"
             });
-
             model.addRow(new Object[]{
                     "Simulation Mode",
                     "Порівнюються канали AWGN, Rayleigh, Rician, Impulse, Combined"
             });
-
             model.addRow(new Object[]{
                     "SDR Mode",
                     "Порівнюється реальний SDR-прийом із математичною моделлю"
             });
-
             comparisonTable.setModel(model);
         }
-
         JScrollPane imageScroll =
                 new JScrollPane(imageLabel);
-
         JScrollPane tableScroll =
                 new JScrollPane(comparisonTable);
-
         JSplitPane splitPane =
                 new JSplitPane(
                         JSplitPane.VERTICAL_SPLIT,
@@ -999,16 +790,11 @@ public class Main extends JFrame {
 
         splitPane.setResizeWeight(0.65);
         splitPane.setOneTouchExpandable(true);
-
         panel.add(splitPane, BorderLayout.CENTER);
-
         return panel;
     }
 
-    /* =========================================================
-       Створення JLabel для графіків
-       ========================================================= */
-
+    // Створення JLabel для графіків
     private JLabel createImageLabel(
             File file,
             String missingText,
@@ -1016,20 +802,17 @@ public class Main extends JFrame {
             int height
     ) {
         JLabel label;
-
         if (file.exists()) {
             ImageIcon icon =
                     new ImageIcon(
                             file.getAbsolutePath()
                     );
-
             Image scaled =
                     icon.getImage().getScaledInstance(
                             width,
                             height,
                             Image.SCALE_SMOOTH
                     );
-
             label = new JLabel(
                     new ImageIcon(scaled),
                     SwingConstants.CENTER
@@ -1048,9 +831,7 @@ public class Main extends JFrame {
         return label;
     }
 
-    /* =========================================================
-       Читання CSV-файлу в таблицю
-       ========================================================= */
+    //Читання CSV-файлу в таблицю
 
     private void loadCsvToTable(
             File csvFile,
@@ -1058,7 +839,6 @@ public class Main extends JFrame {
     ) {
         DefaultTableModel model =
                 new DefaultTableModel();
-
         try (BufferedReader reader =
                      new BufferedReader(
                              new InputStreamReader(
@@ -1069,30 +849,21 @@ public class Main extends JFrame {
 
             String line;
             boolean isFirstLine = true;
-
             while ((line = reader.readLine()) != null) {
                 if (line.trim().isEmpty()) {
                     continue;
                 }
-
-                /*
-                 MATLAB зберігає CSV просто через кому.
-                 Для цих файлів такого читання достатньо.
-                 */
                 String[] values =
                         line.split(",", -1);
 
                 for (int i = 0; i < values.length; i++) {
                     values[i] = values[i].trim();
                 }
-
                 if (isFirstLine) {
                     for (String column : values) {
                         model.addColumn(column);
                     }
-
                     isFirstLine = false;
-
                 } else {
                     model.addRow(values);
                 }
@@ -1103,27 +874,20 @@ public class Main extends JFrame {
         } catch (Exception ex) {
             DefaultTableModel errorModel =
                     new DefaultTableModel();
-
             errorModel.addColumn("Помилка");
             errorModel.addColumn("Опис");
-
             errorModel.addRow(new Object[]{
                     "CSV",
                     ex.getMessage()
             });
-
             table.setModel(errorModel);
         }
     }
-
-    /* =========================================================
-       Завантаження summary.csv у праву панель
-       ========================================================= */
+    //Завантаження summary.csv у праву панель
 
     private void loadSummary() {
         File summary =
                 new File(exportDir, "summary.csv");
-
         if (!summary.exists()) {
             bitsUsedLabel.setText("Bits used: -");
             berLabel.setText("BER: -");
@@ -1132,10 +896,8 @@ public class Main extends JFrame {
             comparisonModeLabel.setText("Comparison: -");
             return;
         }
-
         Map<String, String> map =
                 new LinkedHashMap<>();
-
         try (BufferedReader reader =
                      new BufferedReader(
                              new InputStreamReader(
@@ -1145,7 +907,6 @@ public class Main extends JFrame {
                      )) {
 
             String line;
-
             while ((line = reader.readLine()) != null) {
                 String[] parts =
                         line.split(",", 2);
@@ -1157,7 +918,6 @@ public class Main extends JFrame {
                     );
                 }
             }
-
             bitsUsedLabel.setText(
                     "Bits used: "
                             + map.getOrDefault(
@@ -1165,7 +925,6 @@ public class Main extends JFrame {
                             "-"
                     )
             );
-
             berLabel.setText(
                     "BER: "
                             + map.getOrDefault(
@@ -1173,7 +932,6 @@ public class Main extends JFrame {
                             "-"
                     )
             );
-
             evmLabel.setText(
                     "EVM RMS: "
                             + map.getOrDefault(
@@ -1181,7 +939,6 @@ public class Main extends JFrame {
                             "-"
                     )
             );
-
             snrEstLabel.setText(
                     "SNR est: "
                             + map.getOrDefault(
@@ -1189,7 +946,6 @@ public class Main extends JFrame {
                             "-"
                     )
             );
-
             comparisonModeLabel.setText(
                     "Comparison: "
                             + map.getOrDefault(
@@ -1197,7 +953,6 @@ public class Main extends JFrame {
                             "-"
                     )
             );
-
         } catch (Exception ex) {
             JOptionPane.showMessageDialog(
                     this,
@@ -1207,11 +962,7 @@ public class Main extends JFrame {
             );
         }
     }
-
-    /* 
-       Точка входу в програму
-      */
-
+    //Точка входу в програму
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
             Main window = new Main();
