@@ -493,25 +493,33 @@ function run_sdr_simulation_engine( ...
         end
     end
 
-    %% Графік сузір'я
-    f1 = figure('Visible', 'off', 'Color', 'w');
+  %% Графік сузір'я
+f1 = figure('Visible', 'off', 'Color', 'w');
 
-    plot(real(rxSymbols), imag(rxSymbols), '.', 'MarkerSize', 6);
-    hold on;
-    plot(real(txSymbolsRef), imag(txSymbolsRef), 'ro', 'MarkerSize', 4, 'LineWidth', 1.0);
-    hold off;
+% Вирівнювання еталонних символів до масштабу прийнятих символів.
+% Це потрібно тільки для коректного відображення на графіку:
+% сині точки — прийняті символи, червоні кружечки — центри ідеальних позицій.
+alphaPlot = (txSymbolsRef' * rxSymbols) / ...
+    (txSymbolsRef' * txSymbolsRef + 1e-15);
 
-    grid on;
-    axis equal;
-    xlabel('In-Phase');
-    ylabel('Quadrature');
-    title(sprintf('Constellation: %s, %s mapping, Channel: %s, SNR = %.1f dB', ...
-        cfg.modType, cfg.mappingLabel, cfg.channelType, cfg.snrDb));
-    legend('Received symbols', 'Ideal symbols', 'Location', 'best');
+txSymbolsPlot = alphaPlot * txSymbolsRef;
 
-    exportgraphics(f1, fullfile(outDir, 'constellation.png'), 'Resolution', 200);
-    close(f1);
+plot(real(rxSymbols), imag(rxSymbols), '.', 'MarkerSize', 6);
+hold on;
+plot(real(txSymbolsPlot), imag(txSymbolsPlot), 'ro', ...
+    'MarkerSize', 4, 'LineWidth', 1.0);
+hold off;
 
+grid on;
+axis equal;
+xlabel('In-Phase');
+ylabel('Quadrature');
+title(sprintf('Constellation: %s, %s mapping, Channel: %s, SNR = %.1f dB', ...
+    cfg.modType, cfg.mappingLabel, cfg.channelType, cfg.snrDb));
+legend('Received symbols', 'Ideal symbols', 'Location', 'best');
+
+exportgraphics(f1, fullfile(outDir, 'constellation.png'), 'Resolution', 200);
+close(f1);
     %% Eye diagram
     f2 = figure('Visible', 'off', 'Color', 'w');
 
